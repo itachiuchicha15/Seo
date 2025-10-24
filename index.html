@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Search Me If You Can – The 60-Day SEO Challenge</title>
+
+    {/* SEO & Social Sharing Meta Tags */}
+    <meta name="description" content="A portfolio website documenting a 60-day SEO challenge to rank a new brand from scratch, showcasing skills and progress in real-time." />
+    <meta name="theme-color" content="#F59E0B">
+    <meta property="og:title" content="Search Me If You Can – The 60-Day SEO Challenge" />
+    <meta property="og:description" content="If I can rank myself, I can rank your brand. A real-time portfolio proving SEO skills." />
+    <meta property="og:image" content="https://picsum.photos/seed/ogimage/1200/630" />
+    <meta property="og:url" content={window.location.href} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'primary': '#F59E0B', // amber-500
+              'secondary': '#374151', // gray-700
+              'dark': '#111827', // gray-900
+              'light': '#F9FAFB', // gray-50
+              'muted': '#6B7280', // gray-500
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              mono: ['Roboto Mono', 'monospace'],
+            },
+          },
+        },
+      }
+    </script>
+    <style>
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes bar-up {
+        from { opacity: 0; transform: scaleY(0); }
+        to { opacity: 1; transform: scaleY(1); }
+      }
+      @keyframes stroke-draw {
+        from { stroke-dashoffset: 1000; }
+        to { stroke-dashoffset: 0; }
+      }
+      .fade-in {
+        animation: fadeIn 0.8s ease-out forwards;
+      }
+      .fade-in-up {
+        animation: fadeInUp 0.8s ease-out forwards;
+        opacity: 0; /* Start hidden */
+      }
+      /* Class for scroll-triggered animations */
+      .animate-on-scroll {
+        opacity: 0;
+        transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        transform: translateY(20px);
+      }
+      .animate-on-scroll.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      body {
+        background-color: #F9FAFB; /* light */
+      }
+      .line-clamp-2 {
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+      }
+      /* Custom Prose styles for better readability */
+      .prose-custom p, .prose-custom ul, .prose-custom ol {
+        color: #374151; /* secondary */
+      }
+      .prose-custom h3 {
+        color: #111827; /* dark */
+      }
+      .prose-custom a {
+        color: #F59E0B; /* primary */
+        transition: opacity 0.2s ease-in-out;
+      }
+      .prose-custom a:hover {
+        opacity: 0.8;
+      }
+      .prose-custom strong {
+        color: #111827; /* dark */
+      }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.3",
+    "lucide-react": "https://esm.sh/lucide-react@^0.417.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
