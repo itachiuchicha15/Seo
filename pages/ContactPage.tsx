@@ -1,6 +1,8 @@
+
 import React, { useState } from 'react';
-import { Linkedin, Twitter, PenSquare, Calendar, ArrowRight, MessageSquare, ClipboardList, Copy, Check } from 'lucide-react';
+import { Linkedin, Twitter, PenSquare, Calendar, ArrowRight, MessageSquare, ClipboardList, Copy, Check, Send, Loader, AlertCircle } from 'lucide-react';
 import useIntersectionObserver from '../hooks/useIntersectionObserver';
+import { supabase } from '../lib/supabaseClient';
 
 const ContactPage: React.FC = () => {
   const [headerRef, isHeaderVisible] = useIntersectionObserver({ threshold: 0.3 });
@@ -9,12 +11,35 @@ const ContactPage: React.FC = () => {
 
   const [copied, setCopied] = useState(false);
   const emailAddress = 'hello@alexdoe.com';
+  
+  const [submitting, setSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    alert('Thank you for your message! I will get back to you shortly.');
+    setSubmitting(true);
+    setSubmitStatus('idle');
+
     const form = e.target as HTMLFormElement;
-    form.reset();
+    const formData = new FormData(form);
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const message = formData.get('message') as string;
+
+    const { error } = await supabase
+      .from('contact_messages')
+      .insert([{ name, email, message, is_read: false }]);
+    
+    setSubmitting(false);
+
+    if (error) {
+        console.error('Error submitting contact form:', error);
+        setSubmitStatus('error');
+    } else {
+        setSubmitStatus('success');
+        form.reset();
+    }
   };
   
   const handleCopy = () => {
@@ -54,7 +79,7 @@ const ContactPage: React.FC = () => {
                 </p>
               </div>
               <div className="flex-shrink-0">
-                  <a href="#" className="group inline-flex items-center justify-center bg-primary text-dark font-bold py-3 px-8 rounded-full text-lg transition-all duration-300 shadow-lg hover:brightness-95 transform hover:scale-105">
+                  <a href="#" className="group inline-flex items-center justify-center bg-primary text-white font-bold py-3 px-8 rounded-full text-lg transition-all duration-300 shadow-lg hover:brightness-95 transform hover:scale-105">
                     Schedule a Call
                     <ArrowRight className="ml-2 transition-transform duration-300 group-hover:translate-x-1" />
                   </a>
@@ -82,22 +107,25 @@ const ContactPage: React.FC = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                             <div>
                                 <label htmlFor="name" className="sr-only">Full Name</label>
-                                <input type="text" name="name" id="name" required className="block w-full rounded-lg border-2 border-transparent bg-light px-4 py-3 text-secondary placeholder-muted transition-colors duration-300 focus:border-primary focus:bg-white focus:outline-none" placeholder="Full Name" />
+                                <input type="text" name="name" id="name" required disabled={submitting} className="block w-full rounded-lg border-2 border-transparent bg-light px-4 py-3 text-secondary placeholder-muted transition-colors duration-300 focus:border-primary focus:bg-white focus:outline-none" placeholder="Full Name" />
                             </div>
                             <div>
                                 <label htmlFor="email" className="sr-only">Email Address</label>
-                                <input type="email" name="email" id="email" required className="block w-full rounded-lg border-2 border-transparent bg-light px-4 py-3 text-secondary placeholder-muted transition-colors duration-300 focus:border-primary focus:bg-white focus:outline-none" placeholder="Email Address" />
+                                <input type="email" name="email" id="email" required disabled={submitting} className="block w-full rounded-lg border-2 border-transparent bg-light px-4 py-3 text-secondary placeholder-muted transition-colors duration-300 focus:border-primary focus:bg-white focus:outline-none" placeholder="Email Address" />
                             </div>
                         </div>
                         <div>
                             <label htmlFor="message" className="sr-only">Your Message</label>
-                            <textarea id="message" name="message" rows={5} required className="block w-full rounded-lg border-2 border-transparent bg-light px-4 py-3 text-secondary placeholder-muted transition-colors duration-300 focus:border-primary focus:bg-white focus:outline-none" placeholder="Tell me about your project..."></textarea>
+                            <textarea id="message" name="message" rows={5} required disabled={submitting} className="block w-full rounded-lg border-2 border-transparent bg-light px-4 py-3 text-secondary placeholder-muted transition-colors duration-300 focus:border-primary focus:bg-white focus:outline-none" placeholder="Tell me about your project..."></textarea>
                         </div>
                     </div>
-                    <div className="mt-6">
-                        <button type="submit" className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 border border-transparent rounded-lg shadow-sm text-base font-bold text-white bg-secondary hover:bg-dark transition-all duration-300 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
-                            Send Project Inquiry
+                     <div className="mt-6 flex items-center justify-between">
+                        <button type="submit" disabled={submitting} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 border border-transparent rounded-lg shadow-sm text-base font-bold text-white bg-secondary hover:bg-dark transition-all duration-300 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-60">
+                            {submitting ? <Loader className="animate-spin h-5 w-5" /> : <Send className="h-5 w-5" />}
+                            {submitting ? 'Sending...' : 'Send Inquiry'}
                         </button>
+                         {submitStatus === 'success' && <div className="text-green-600 font-semibold flex items-center gap-2 fade-in"><Check size={20} />Message Sent!</div>}
+                        {submitStatus === 'error' && <div className="text-red-600 font-semibold flex items-center gap-2 fade-in"><AlertCircle size={20} />An error occurred.</div>}
                     </div>
                 </form>
             </div>

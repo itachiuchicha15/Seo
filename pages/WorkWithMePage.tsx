@@ -1,3 +1,5 @@
+
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import useIntersectionObserver from '../hooks/useIntersectionObserver';
@@ -47,12 +49,12 @@ const WorkWithMePage: React.FC = () => {
                          <img
                             className="h-24 w-24 rounded-full mx-auto shadow-md ring-4 ring-white"
                             src="https://picsum.photos/seed/avatar/200/200"
-                            alt="Alex Doe"
+                            alt="Eswarapandi V"
                         />
                         <p className="mt-6 text-2xl text-secondary font-medium leading-tight">
-                            "If I can rank myself from scratch, imagine what I can do for your established brand."
+                            "If I can rank myself, imagine what I can do for your established brand."
                         </p>
-                        <p className="mt-4 font-bold text-dark">- Alex Doe</p>
+                        <p className="mt-4 font-bold text-dark">- Eswarapandi V</p>
                     </div>
                 </div>
             </div>
@@ -66,38 +68,41 @@ const WorkWithMePage: React.FC = () => {
                 <h2 className="text-3xl font-extrabold text-dark sm:text-4xl">How It Works: A Proven Process</h2>
                 <p className="mt-4 text-lg text-muted">A partnership built on clarity, strategy, and measurable results.</p>
             </div>
-
             <div className="relative">
-                <div className="absolute left-1/2 -ml-px w-0.5 h-full bg-gray-200" aria-hidden="true"></div>
+                {/* Vertical line: centered on desktop, on the left for mobile */}
+                <div className="absolute top-0 left-8 md:left-1/2 w-0.5 h-full bg-gray-200 -translate-x-1/2" aria-hidden="true"></div>
                 <div className="space-y-16">
                     {processSteps.map((step, index) => {
-                        const [stepRef, isStepVisible] = useIntersectionObserver({ threshold: 0.4 });
+                        const isLeftDesktop = index % 2 === 0;
+                        const [stepRef, isStepVisible] = useIntersectionObserver({ threshold: 0.3 });
                         return (
-                           <div key={step.title} ref={stepRef} className={`relative flex items-start animate-on-scroll ${isStepVisible ? 'is-visible' : ''}`}>
-                                <div className="absolute left-1/2 -translate-x-1/2 z-10">
+                            <div key={step.title} ref={stepRef} className={`relative animate-on-scroll ${isStepVisible ? 'is-visible' : ''}`}>
+                                {/* The icon on the timeline */}
+                                <div className="absolute top-8 left-8 md:left-1/2 -translate-x-1/2 z-10">
                                     <div className="flex items-center justify-center w-16 h-16 rounded-full bg-white border-2 border-primary shadow-lg">
                                         <step.icon className="h-8 w-8 text-primary" />
                                     </div>
                                 </div>
-                                <div className={`w-[calc(50%-2rem)] transition-all duration-500 ${index % 2 === 0 ? 'pr-8 text-right' : 'pl-8 text-left ml-auto'}`}>
-                                    <div className={`p-8 bg-white rounded-2xl shadow-md border border-gray-200 animate-on-scroll ${isStepVisible ? 'is-visible' : ''}`} style={{ transitionDelay: '200ms' }}>
+                                {/* Content Card Wrapper */}
+                                <div className={`pl-24 md:pl-0 md:w-1/2 ${isLeftDesktop ? 'md:mr-auto md:pr-10' : 'md:ml-auto md:pl-10'}`}>
+                                    <div className={`p-8 bg-white rounded-2xl shadow-md border border-gray-200 text-left ${isLeftDesktop ? 'md:text-right' : ''}`}>
                                         <h3 className="text-2xl font-bold text-dark">{step.title}</h3>
                                         <p className="mt-3 text-muted">{step.description}</p>
                                         <div className="mt-6 pt-4 border-t border-gray-200">
                                             <h4 className="font-bold text-secondary text-sm uppercase tracking-wide">What's Included</h4>
                                             <ul className="mt-3 space-y-2">
-                                                {step.deliverables.map((item, i) => (
-                                                    <li key={item} className={`flex items-center gap-3 animate-on-scroll ${isStepVisible ? 'is-visible' : ''} ${index % 2 === 0 ? 'justify-end' : ''}`} style={{ transitionDelay: `${400 + i * 100}ms`}}>
-                                                        {index % 2 === 0 && <span className="text-muted text-sm">{item}</span>}
-                                                        <CheckCircle className="h-5 w-5 text-primary/80" />
-                                                        {index % 2 !== 0 && <span className="text-muted text-sm">{item}</span>}
+                                                {step.deliverables.map((item) => (
+                                                    <li key={item} className={`flex items-center gap-3 text-muted text-sm ${isLeftDesktop ? 'md:justify-end' : 'justify-start'}`}>
+                                                        {isLeftDesktop && <span>{item}</span>}
+                                                        <CheckCircle className="h-5 w-5 text-primary/80 flex-shrink-0" />
+                                                        {!isLeftDesktop && <span>{item}</span>}
                                                     </li>
                                                 ))}
                                             </ul>
                                         </div>
                                     </div>
                                 </div>
-                           </div>
+                            </div>
                         );
                     })}
                 </div>
@@ -152,7 +157,7 @@ const WorkWithMePage: React.FC = () => {
                     Let's discuss how my proven, transparent approach to SEO can help you achieve your business goals. The first step is a free, no-obligation discovery call.
                 </p>
                 <div className="mt-8">
-                    <Link to="/contact" className="group inline-flex items-center justify-center bg-primary text-dark font-bold py-3 px-8 rounded-lg text-lg transition-all duration-300 shadow-lg hover:brightness-95">
+                    <Link to="/contact" className="group inline-flex items-center justify-center bg-primary text-white font-bold py-3 px-8 rounded-lg text-lg transition-all duration-300 shadow-lg hover:brightness-95">
                         Book Your Free Discovery Call
                         <ArrowRight className="ml-2 transition-transform duration-300 group-hover:translate-x-1" />
                     </Link>

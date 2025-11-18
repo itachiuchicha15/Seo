@@ -1,12 +1,18 @@
-import React, { useState, useMemo, useCallback } from 'react';
+
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import CountdownTimer from '../components/CountdownTimer';
 import { Target, Compass, CheckSquare, ChevronDown, ArrowRight, XCircle, TrendingUp, MousePointer, Eye, ArrowUp, ArrowDown, Minus } from 'lucide-react';
-import { blogPosts } from '../data/blogPosts';
+import { BlogPost } from '../types';
+import { supabase } from '../lib/supabaseClient';
 import PostCard from '../components/PostCard';
 import ParticleNetwork from '../components/ParticleNetwork';
 import FloatingDataNuggets from '../components/FloatingDataNuggets';
 import useIntersectionObserver from '../hooks/useIntersectionObserver';
+import useMediaQuery from '../hooks/useMediaQuery';
+import BackToTopButton from '../components/BackToTopButton';
+import Skeleton from '../components/Skeleton';
+import { getThemeColor } from '../lib/utils';
 
 
 const faqs = [
@@ -37,7 +43,7 @@ const FAQItem: React.FC<{ question: string; answer: string, isOpen: boolean, onC
                 aria-expanded={isOpen}
             >
                 <span className="text-lg font-medium text-dark">{question}</span>
-                <ChevronDown className={`h-6 w-6 flex-shrink-0 text-muted transition-transform duration-300 ${isOpen ? 'rotate-180 text-primary' : ''}`} />
+                <ChevronDown className={`h-6 w-6 flex-shrink0 text-muted transition-transform duration-300 ${isOpen ? 'rotate-180 text-primary' : ''}`} />
             </button>
             <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 opacity-100 pb-6' : 'max-h-0 opacity-0'}`}>
                 <p className="text-muted">
@@ -51,7 +57,7 @@ const FAQItem: React.FC<{ question: string; answer: string, isOpen: boolean, onC
 interface TooltipData {
     x: number;
     y: number;
-    post: typeof blogPosts[0];
+    post: BlogPost;
 }
 
 const RankChange: React.FC<{ currentRank: number | string; prevRank: number | string | null; }> = ({ currentRank, prevRank }) => {
@@ -73,16 +79,60 @@ const RankChange: React.FC<{ currentRank: number | string; prevRank: number | st
     return <span className="text-muted flex items-center gap-1"><Minus size={14} /> 0</span>;
 };
 
+const DashboardSkeleton: React.FC = () => {
+    return (
+        <div className="animate-pulse space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                 {[...Array(3)].map((_, i) => (
+                    <div key={i} className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+                        <div className="flex justify-between items-start mb-4">
+                            <Skeleton className="h-6 w-32" />
+                            <Skeleton className="h-8 w-8 rounded-md" />
+                        </div>
+                        <Skeleton className="h-12 w-20 mb-2" />
+                        <Skeleton className="h-4 w-24" />
+                    </div>
+                ))}
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+                <Skeleton className="h-6 w-48 mb-6" />
+                <Skeleton className="h-64 w-full rounded-lg" />
+                <div className="mt-6 flex justify-center">
+                     <Skeleton className="h-6 w-40" />
+                </div>
+            </div>
+        </div>
+    );
+};
 
-const LiveChallengeDashboard: React.FC = () => {
+const LiveChallengeDashboard: React.FC<{ blogPosts: BlogPost[] }> = ({ blogPosts }) => {
     const [tooltip, setTooltip] = useState<TooltipData | null>(null);
     const [isLogVisible, setIsLogVisible] = useState(false);
     const [ref, isVisible] = useIntersectionObserver();
-
-
-    const sortedPosts = useMemo(() => blogPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), []);
-    const allPostsChronological = useMemo(() => [...blogPosts].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()), []);
     
+    // Dynamic chart colors
+    const [colors, setColors] = useState({ primary: '#000000', muted: '#9CA3AF', chart: '#F59E0B' });
+
+    useEffect(() => {
+        setColors({
+            // Ensure 'chart' color is fetched specifically for the chart
+            primary: getThemeColor('primary', '#000000'),
+            muted: getThemeColor('muted', '#9CA3AF'),
+            chart: getThemeColor('chart', '#F59E0B')
+        });
+    }, []);
+
+    const sortedPosts = useMemo(() => blogPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [blogPosts]);
+    const allPostsChronological = useMemo(() => [...blogPosts].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()), [blogPosts]);
+    
+    if (blogPosts.length === 0) {
+        return (
+            <div className="text-center py-10 bg-white rounded-2xl shadow-lg border border-gray-200">
+                <p className="text-muted">No challenge data available yet. Check back soon!</p>
+            </div>
+        );
+    }
+
     const latestPost = sortedPosts[0];
     const firstPost = sortedPosts[sortedPosts.length - 1];
 
@@ -93,6 +143,7 @@ const LiveChallengeDashboard: React.FC = () => {
     }, []);
 
     const chartData = useMemo(() => {
+        if (allPostsChronological.length < 2) return null;
         const SVG_WIDTH = 800;
         const SVG_HEIGHT = 250;
         const PADDING = { top: 20, right: 60, bottom: 30, left: 60 };
@@ -137,6 +188,7 @@ const LiveChallengeDashboard: React.FC = () => {
     }, [allPostsChronological]);
 
     const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+        if (!chartData) return;
         const svg = e.currentTarget;
         const pt = svg.createSVGPoint();
         pt.x = e.clientX;
@@ -201,6 +253,7 @@ const LiveChallengeDashboard: React.FC = () => {
 
             <div className="mt-8 bg-white p-4 sm:p-6 rounded-2xl shadow-lg border border-gray-200">
                 <h3 className="text-lg font-semibold text-dark mb-4">Performance Over Time</h3>
+                {chartData ? (
                 <div className="relative">
                     <svg
                         viewBox={`0 0 ${chartData.svgWidth} ${chartData.svgHeight}`}
@@ -210,12 +263,12 @@ const LiveChallengeDashboard: React.FC = () => {
                     >
                         <defs>
                             <linearGradient id="impressionGradient" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="0%" stopColor="#6B7280" stopOpacity={0.15}/>
-                                <stop offset="100%" stopColor="#6B7280" stopOpacity={0}/>
+                                <stop offset="0%" stopColor={colors.muted} stopOpacity={0.15}/>
+                                <stop offset="100%" stopColor={colors.muted} stopOpacity={0}/>
                             </linearGradient>
                             <linearGradient id="rankGradient" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.15}/>
-                                <stop offset="100%" stopColor="#F59E0B" stopOpacity={0}/>
+                                <stop offset="0%" stopColor={colors.chart} stopOpacity={0.15}/>
+                                <stop offset="100%" stopColor={colors.chart} stopOpacity={0}/>
                             </linearGradient>
                         </defs>
 
@@ -223,10 +276,10 @@ const LiveChallengeDashboard: React.FC = () => {
                         <line x1={chartData.padding.left} y1={chartData.svgHeight - chartData.padding.bottom} x2={chartData.svgWidth - chartData.padding.right} y2={chartData.svgHeight - chartData.padding.bottom} stroke="#D1D5DB" />
                         <text x={chartData.padding.left - 10} y={chartData.padding.top} dy="0.3em" textAnchor="end" className="text-xs fill-muted font-semibold">{chartData.maxImpressions}</text>
                         <text x={chartData.padding.left - 10} y={chartData.svgHeight - chartData.padding.bottom} textAnchor="end" className="text-xs fill-muted font-semibold">0</text>
-                        <text x={chartData.svgWidth-chartData.padding.right + 10} y={chartData.padding.top} dy="0.3em" textAnchor="start" className="text-xs fill-primary font-semibold">1</text>
-                        <text x={chartData.svgWidth-chartData.padding.right + 10} y={chartData.svgHeight - chartData.padding.bottom} textAnchor="start" className="text-xs fill-primary font-semibold">{'>'}{chartData.maxRank}</text>
+                        <text x={chartData.svgWidth-chartData.padding.right + 10} y={chartData.padding.top} dy="0.3em" textAnchor="start" className="text-xs font-semibold" fill={colors.chart}>1</text>
+                        <text x={chartData.svgWidth-chartData.padding.right + 10} y={chartData.svgHeight - chartData.padding.bottom} textAnchor="start" className="text-xs font-semibold" fill={colors.chart}>{'>'}{chartData.maxRank}</text>
                         <text x={10} y={chartData.svgHeight/2} className="text-xs fill-muted font-bold" transform={`rotate(-90 10,${chartData.svgHeight/2})`}>Impressions</text>
-                        <text x={chartData.svgWidth - 10} y={chartData.svgHeight/2} className="text-xs fill-primary font-bold" transform={`rotate(90 ${chartData.svgWidth-10},${chartData.svgHeight/2})`}>Rank (Lower is Better)</text>
+                        <text x={chartData.svgWidth - 10} y={chartData.svgHeight/2} className="text-xs font-bold" fill={colors.chart} transform={`rotate(90 ${chartData.svgWidth-10},${chartData.svgHeight/2})`}>Rank (Lower is Better)</text>
                         
                         {/* Grid lines */}
                         {[...Array(5)].map((_, i) => (
@@ -246,15 +299,15 @@ const LiveChallengeDashboard: React.FC = () => {
                         <path d={chartData.rankAreaPoints} fill="url(#rankGradient)" className="fade-in" style={{ animationDelay: '0.5s' }}/>
 
                         {/* Data Lines */}
-                        <polyline points={chartData.impressionLinePoints} fill="none" stroke="#6B7280" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 1000, strokeDashoffset: 1000, animation: 'stroke-draw 2s 0.5s ease-out forwards' }} />
-                        <polyline points={chartData.rankLinePoints} fill="none" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 1000, strokeDashoffset: 1000, animation: 'stroke-draw 2s ease-out forwards' }}/>
+                        <polyline points={chartData.impressionLinePoints} fill="none" stroke={colors.muted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 1000, strokeDashoffset: 1000, animation: 'stroke-draw 2s 0.5s ease-out forwards' }} />
+                        <polyline points={chartData.rankLinePoints} fill="none" stroke={colors.chart} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 1000, strokeDashoffset: 1000, animation: 'stroke-draw 2s ease-out forwards' }}/>
 
                         {/* Tooltip Line & Data Points */}
                         {tooltip && (
                             <>
-                                <line x1={tooltip.x} y1={chartData.padding.top} x2={tooltip.x} y2={chartData.svgHeight - chartData.padding.bottom} stroke="#9CA3AF" strokeDasharray="3,3" />
-                                <circle cx={tooltip.x} cy={chartData.points.find(p => p.post.id === tooltip.post.id)?.yImpressions} r="5" fill="white" stroke="#6B7280" strokeWidth="2" />
-                                <circle cx={tooltip.x} cy={chartData.points.find(p => p.post.id === tooltip.post.id)?.yRank} r="5" fill="white" stroke="#F59E0B" strokeWidth="2" />
+                                <line x1={tooltip.x} y1={chartData.padding.top} x2={tooltip.x} y2={chartData.svgHeight - chartData.padding.bottom} stroke={colors.muted} strokeDasharray="3,3" />
+                                <circle cx={tooltip.x} cy={chartData.points.find(p => p.post.id === tooltip.post.id)?.yImpressions} r="5" fill="white" stroke={colors.muted} strokeWidth="2" />
+                                <circle cx={tooltip.x} cy={chartData.points.find(p => p.post.id === tooltip.post.id)?.yRank} r="5" fill="white" stroke={colors.chart} strokeWidth="2" />
                             </>
                         )}
                     </svg>
@@ -268,12 +321,13 @@ const LiveChallengeDashboard: React.FC = () => {
                             }}
                         >
                             <p className="font-bold border-b border-gray-600 pb-1 mb-1">{tooltip.post.title}</p>
-                            <p><span className="text-primary font-semibold">Rank:</span> {tooltip.post.metrics.rank}</p>
+                            <p><span className="text-chart font-semibold" style={{ color: colors.chart }}>Rank:</span> {tooltip.post.metrics.rank}</p>
                             <p><span className="text-muted font-semibold">Clicks:</span> {tooltip.post.metrics.clicks}</p>
                             <p><span className="text-muted font-semibold">Impressions:</span> {tooltip.post.metrics.impressions}</p>
                         </div>
                     )}
                 </div>
+                ) : <div className="text-center p-8 text-muted">Not enough data to display chart.</div>}
 
                 <div className="mt-6 text-center">
                     <button 
@@ -332,24 +386,44 @@ const HomePage: React.FC = () => {
   challengeEndDate.setDate(challengeEndDate.getDate() + 60);
 
   const [openFAQ, setOpenFAQ] = useState<number | null>(0);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  const sortedPosts = useMemo(() => blogPosts.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()), []);
-  const latestPostsForTimeline = useMemo(() => sortedPosts.slice(0, 3), [sortedPosts]);
-  const allPostsChronological = useMemo(() => [...blogPosts].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()), []);
+  useEffect(() => {
+    const fetchPosts = async () => {
+        const { data, error } = await supabase
+            .from('posts')
+            .select('*')
+            .order('date', { ascending: false });
+
+        if (error) {
+            console.error("Error fetching posts:", error);
+        } else {
+            setBlogPosts(data as BlogPost[]);
+        }
+        setLoading(false);
+    };
+
+    fetchPosts();
+  }, []);
+  
+  const latestPostsForTimeline = useMemo(() => blogPosts.slice(0, 3), [blogPosts]);
+  const allPostsChronological = useMemo(() => [...blogPosts].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()), [blogPosts]);
 
   const [heroRef, isHeroVisible] = useIntersectionObserver({ threshold: 0.1 });
   const [dashboardRef, isDashboardVisible] = useIntersectionObserver();
   const [caseStudyRef, isCaseStudyVisible] = useIntersectionObserver();
   const [logRef, isLogVisible] = useIntersectionObserver();
   const [faqRef, isFaqVisible] = useIntersectionObserver();
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
 
   return (
     <div className="text-secondary">
       {/* Hero Section */}
       <section ref={heroRef} className="relative bg-light overflow-hidden">
-        <ParticleNetwork isAnimating={isHeroVisible} />
-        <FloatingDataNuggets isAnimating={isHeroVisible} />
+        {!isMobile && <ParticleNetwork isAnimating={isHeroVisible} />}
+        {!isMobile && <FloatingDataNuggets isAnimating={isHeroVisible} />}
         <div className="absolute inset-0 bg-gradient-to-b from-light/0 to-light z-[5]"></div>
         <div className="relative z-10 py-24 sm:py-32">
           <div className="max-w-7xl mx-auto px-4 text-center">
@@ -383,15 +457,15 @@ const HomePage: React.FC = () => {
             >
               <Link
                 to="/blog"
-                className="inline-block bg-primary text-white font-bold py-3 px-8 rounded-full text-lg hover:brightness-95 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-primary/20"
+                className="inline-block bg-primary text-primary-foreground font-bold py-3 px-8 rounded-full text-lg hover:brightness-95 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-primary/20"
               >
                 Follow the Challenge
               </Link>
               <Link
-                to="/process"
+                to="/challenge"
                 className="inline-block bg-white text-secondary font-bold py-3 px-8 rounded-full text-lg hover:bg-gray-50 transition-all duration-300 transform hover:scale-105 border-2 border-gray-300"
               >
-                See My Process
+                About The Challenge
               </Link>
             </div>
           </div>
@@ -407,7 +481,7 @@ const HomePage: React.FC = () => {
                     Real-time progress, with interactive data showing the journey from Day 1 to today.
                 </p>
             </div>
-            <LiveChallengeDashboard />
+            {loading ? <DashboardSkeleton /> : <LiveChallengeDashboard blogPosts={blogPosts} />}
         </div>
       </section>
 
@@ -433,7 +507,7 @@ const HomePage: React.FC = () => {
                 <div className="ml-4">
                   <h3 className="text-2xl font-bold text-dark">The Goal</h3>
                   <p className="mt-2 text-muted">
-                    Achieve a top-10 Google ranking for "Alex Doe SEO Challenge" to showcase practical, effective skills.
+                    Achieve a top-10 Google ranking for "Eswarapandi SEO Challenge" to showcase practical, effective skills.
                   </p>
                 </div>
               </div>
@@ -528,6 +602,7 @@ const HomePage: React.FC = () => {
               </div>
           </div>
       </section>
+      <BackToTopButton />
     </div>
   );
 };

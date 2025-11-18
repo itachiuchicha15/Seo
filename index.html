@@ -8,7 +8,7 @@
 
     {/* SEO & Social Sharing Meta Tags */}
     <meta name="description" content="A portfolio website documenting a 60-day SEO challenge to rank a new brand from scratch, showcasing skills and progress in real-time." />
-    <meta name="theme-color" content="#F59E0B">
+    <meta name="theme-color" content="#000000">
     <meta property="og:title" content="Search Me If You Can – The 60-Day SEO Challenge" />
     <meta property="og:description" content="If I can rank myself, I can rank your brand. A real-time portfolio proving SEO skills." />
     <meta property="og:image" content="https://picsum.photos/seed/ogimage/1200/630" />
@@ -21,11 +21,14 @@
         theme: {
           extend: {
             colors: {
-              'primary': '#F59E0B', // amber-500
-              'secondary': '#374151', // gray-700
-              'dark': '#111827', // gray-900
-              'light': '#F9FAFB', // gray-50
-              'muted': '#6B7280', // gray-500
+              'primary': '#000000', // Pure Black (Action/Accent - Buttons)
+              'primary-foreground': '#FFFFFF', // White (Text on Primary Buttons)
+              'secondary': '#4B5563', // Cool Slate Grey (Body Text, Brand Primary)
+              'dark': '#000000', // Pure Black (Headings)
+              'light': '#F3F4F6', // Whisper Grey (Surface, Backgrounds)
+              'muted': '#9CA3AF', // Soft Silver (Subtext)
+              'chart': '#000000', // Black (Charts - Aligned with Theme)
+              'white': '#FFFFFF', // Pure White
             },
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
@@ -52,6 +55,35 @@
         from { stroke-dashoffset: 1000; }
         to { stroke-dashoffset: 0; }
       }
+      /* Shimmer Animation for Skeleton Loading */
+      @keyframes shimmer {
+        100% {
+          transform: translateX(100%);
+        }
+      }
+      .shimmer {
+        position: relative;
+        overflow: hidden;
+        background-color: #E5E7EB; /* gray-200 */
+      }
+      .shimmer::after {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        transform: translateX(-100%);
+        background-image: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0) 0,
+          rgba(255, 255, 255, 0.5) 20%,
+          rgba(255, 255, 255, 0.8) 60%,
+          rgba(255, 255, 255, 0)
+        );
+        animation: shimmer 1.5s infinite;
+        content: '';
+      }
+
       .fade-in {
         animation: fadeIn 0.8s ease-out forwards;
       }
@@ -70,7 +102,7 @@
         transform: translateY(0);
       }
       body {
-        background-color: #F9FAFB; /* light */
+        background-color: #FFFFFF; /* Main page background */
       }
       .line-clamp-2 {
         overflow: hidden;
@@ -80,20 +112,20 @@
       }
       /* Custom Prose styles for better readability */
       .prose-custom p, .prose-custom ul, .prose-custom ol {
-        color: #374151; /* secondary */
+        color: #4B5563; /* secondary */
       }
       .prose-custom h3 {
-        color: #111827; /* dark */
+        color: #000000; /* dark */
       }
       .prose-custom a {
-        color: #F59E0B; /* primary */
+        color: #000000; /* primary */
         transition: opacity 0.2s ease-in-out;
       }
       .prose-custom a:hover {
         opacity: 0.8;
       }
       .prose-custom strong {
-        color: #111827; /* dark */
+        color: #000000; /* dark */
       }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -107,7 +139,8 @@
     "react": "https://aistudiocdn.com/react@^19.1.1",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
     "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.3",
-    "lucide-react": "https://esm.sh/lucide-react@^0.417.0"
+    "lucide-react": "https://esm.sh/lucide-react@^0.417.0",
+    "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"
   }
 }
 </script>

@@ -1,19 +1,54 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { blogPosts } from '../../data/blogPosts';
-import { PlusCircle, Edit, Trash2, LogOut } from 'lucide-react';
+import { BlogPost } from '../../types';
+import { supabase } from '../../lib/supabaseClient';
+import { PlusCircle, Edit, Trash2, LogOut, Inbox, FileText } from 'lucide-react';
+import Skeleton from '../../components/Skeleton';
 
 const AdminDashboardPage: React.FC = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const handleLogout = () => {
-    logout();
+  useEffect(() => {
+    const fetchPosts = async () => {
+        const { data, error } = await supabase
+            .from('posts')
+            .select('*')
+            .order('date', { ascending: false });
+
+        if (error) {
+            setError('Could not fetch posts.');
+            console.error(error);
+        } else {
+            setPosts(data as BlogPost[]);
+        }
+        setLoading(false);
+    };
+
+    fetchPosts();
+  }, []);
+
+  const handleLogout = async () => {
+    await logout();
     navigate('/admin');
   };
-  
-  const sortedPosts = [...blogPosts].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+        // Here you might also want to delete the associated image from storage
+        const { error } = await supabase.from('posts').delete().eq('id', id);
+        if (error) {
+            alert('Error deleting post: ' + error.message);
+        } else {
+            setPosts(posts.filter(p => p.id !== id));
+        }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-light">
@@ -31,7 +66,14 @@ const AdminDashboardPage: React.FC = () => {
       </header>
       <main className="py-10">
         <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-            <div className="mb-8 flex justify-end">
+            <div className="mb-8 flex justify-end gap-4">
+                <Link
+                  to="/admin/messages"
+                  className="inline-flex items-center gap-2 justify-center px-5 py-3 border border-gray-300 text-base font-medium rounded-md text-secondary bg-white hover:bg-light transition-colors"
+                >
+                  <Inbox size={20} />
+                  View Messages
+                </Link>
                 <Link
                   to="/admin/new-post"
                   className="inline-flex items-center gap-2 justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary hover:brightness-95"
@@ -42,47 +84,79 @@ const AdminDashboardPage: React.FC = () => {
             </div>
 
             <div className="bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                      Title
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                      Date
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th scope="col" className="relative px-6 py-3">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {sortedPosts.map((post) => (
-                    <tr key={post.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-dark">{post.title}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-muted">{post.date}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          Published
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end gap-4">
-                           <button className="text-primary hover:text-dark transition-colors"><Edit size={18} /></button>
-                           <button className="text-red-600 hover:text-red-900 transition-colors"><Trash2 size={18} /></button>
-                        </div>
-                      </td>
+              {error && <p className="p-6 text-red-500 text-center">{error}</p>}
+              
+              {!loading && !error && posts.length === 0 && (
+                  <div className="p-10 text-center flex flex-col items-center justify-center">
+                      <FileText className="h-12 w-12 text-muted mb-4" />
+                      <h3 className="text-lg font-medium text-dark">No posts available</h3>
+                      <p className="text-muted mt-1">Get started by creating your first blog post.</p>
+                  </div>
+              )}
+
+              {(loading || (!error && posts.length > 0)) && (
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+                        Title
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+                        Slug
+                      </th>
+                      <th scope="col" className="relative px-6 py-3">
+                        <span className="sr-only">Actions</span>
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {loading ? (
+                        [...Array(5)].map((_, i) => (
+                            <tr key={i}>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <Skeleton className="h-5 w-48" />
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <Skeleton className="h-4 w-24" />
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <Skeleton className="h-4 w-32" />
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div className="flex items-center justify-end gap-4">
+                                        <Skeleton className="h-5 w-5 rounded-md" />
+                                        <Skeleton className="h-5 w-5 rounded-md" />
+                                    </div>
+                                </td>
+                            </tr>
+                        ))
+                    ) : (
+                        posts.map((post) => (
+                        <tr key={post.id}>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-dark">{post.title}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-muted">{post.date}</div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-muted font-mono">
+                            /blog/{post.slug}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end gap-4">
+                                <Link to={`/admin/edit/${post.slug}`} className="text-primary hover:text-dark transition-colors"><Edit size={18} /></Link>
+                                <button onClick={() => handleDelete(post.id)} className="text-red-600 hover:text-red-900 transition-colors"><Trash2 size={18} /></button>
+                            </div>
+                            </td>
+                        </tr>
+                        ))
+                    )}
+                  </tbody>
+                </table>
+              )}
             </div>
         </div>
       </main>

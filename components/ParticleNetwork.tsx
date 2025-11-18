@@ -1,10 +1,11 @@
+
 import React, { useRef, useEffect } from 'react';
+import { getThemeColor, hexToRgba } from '../lib/utils';
 
 interface ParticleNetworkProps {
     isAnimating: boolean;
 }
 
-// FIX: Moved Particle class outside the component to fix scope issues.
 class Particle {
     x: number;
     y: number;
@@ -13,8 +14,9 @@ class Particle {
     speedY: number;
     canvasWidth: number;
     canvasHeight: number;
+    color: string;
 
-    constructor(canvasWidth: number, canvasHeight: number) {
+    constructor(canvasWidth: number, canvasHeight: number, color: string) {
         this.canvasWidth = canvasWidth;
         this.canvasHeight = canvasHeight;
         this.x = Math.random() * canvasWidth;
@@ -22,6 +24,7 @@ class Particle {
         this.size = Math.random() * 2 + 1;
         this.speedX = Math.random() * 0.4 - 0.2;
         this.speedY = Math.random() * 0.4 - 0.2;
+        this.color = color;
     }
 
     update() {
@@ -32,7 +35,7 @@ class Particle {
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        ctx.fillStyle = '#6B7280'; // muted (gray-500)
+        ctx.fillStyle = this.color;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();
@@ -42,10 +45,18 @@ class Particle {
 
 const ParticleNetwork: React.FC<ParticleNetworkProps> = ({ isAnimating }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    // FIX: Provided initial value to useRef to fix "Expected 1 arguments, but got 0" error.
     const animationFrameId = useRef<number | undefined>(undefined);
     const particles = useRef<Particle[]>([]);
     const mouse = useRef({ x: -1000, y: -1000, radius: 100 });
+
+    // Fetch colors once on mount
+    const mutedColor = useRef('#9CA3AF');
+    const primaryColor = useRef('#000000');
+
+    useEffect(() => {
+        mutedColor.current = getThemeColor('muted', '#9CA3AF');
+        primaryColor.current = getThemeColor('primary', '#000000');
+    }, []);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -57,6 +68,19 @@ const ParticleNetwork: React.FC<ParticleNetworkProps> = ({ isAnimating }) => {
         const connect = () => {
             if(!ctx) return;
             let opacityValue = 1;
+            
+            // Parse base RGB for muted color line
+            const mHex = mutedColor.current;
+            const mr = parseInt(mHex.slice(1, 3), 16);
+            const mg = parseInt(mHex.slice(3, 5), 16);
+            const mb = parseInt(mHex.slice(5, 7), 16);
+
+            // Parse base RGB for primary color line
+            const pHex = primaryColor.current;
+            const pr = parseInt(pHex.slice(1, 3), 16);
+            const pg = parseInt(pHex.slice(3, 5), 16);
+            const pb = parseInt(pHex.slice(5, 7), 16);
+
             for (let a = 0; a < particles.current.length; a++) {
                 for (let b = a; b < particles.current.length; b++) {
                     const dx = particles.current[a].x - particles.current[b].x;
@@ -65,7 +89,7 @@ const ParticleNetwork: React.FC<ParticleNetworkProps> = ({ isAnimating }) => {
 
                     if (distance < 120) {
                         opacityValue = 1 - (distance / 120);
-                        ctx.strokeStyle = `rgba(107, 114, 128, ${opacityValue})`; // muted (gray-500)
+                        ctx.strokeStyle = `rgba(${mr}, ${mg}, ${mb}, ${opacityValue})`; 
                         ctx.lineWidth = 0.5;
                         ctx.beginPath();
                         ctx.moveTo(particles.current[a].x, particles.current[a].y);
@@ -80,7 +104,7 @@ const ParticleNetwork: React.FC<ParticleNetworkProps> = ({ isAnimating }) => {
                 const dy = particles.current[i].y - mouse.current.y;
                 const distance = Math.sqrt(dx*dx + dy*dy);
                 if (distance < mouse.current.radius) {
-                    ctx.strokeStyle = `rgba(245, 158, 11, ${1 - distance/mouse.current.radius})`; // primary
+                    ctx.strokeStyle = `rgba(${pr}, ${pg}, ${pb}, ${1 - distance/mouse.current.radius})`; 
                     ctx.lineWidth = 1;
                     ctx.beginPath();
                     ctx.moveTo(mouse.current.x, mouse.current.y);
@@ -95,7 +119,6 @@ const ParticleNetwork: React.FC<ParticleNetworkProps> = ({ isAnimating }) => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             for (const particle of particles.current) {
                 particle.update();
-                // FIX: Pass context to draw method.
                 particle.draw(ctx);
             }
             connect();
@@ -136,10 +159,9 @@ const ParticleNetwork: React.FC<ParticleNetworkProps> = ({ isAnimating }) => {
 
         const init = () => {
             particles.current = [];
-            const numberOfParticles = (canvas.width * canvas.height) / 15000; // Reduced density
+            const numberOfParticles = (canvas.width * canvas.height) / 15000; 
             for (let i = 0; i < numberOfParticles; i++) {
-                // FIX: Correctly instantiate Particle with canvas dimensions.
-                particles.current.push(new Particle(canvas.width, canvas.height));
+                particles.current.push(new Particle(canvas.width, canvas.height, mutedColor.current));
             }
         };
 

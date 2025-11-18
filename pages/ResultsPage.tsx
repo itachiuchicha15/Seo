@@ -1,8 +1,12 @@
-import React, { useMemo, useState } from 'react';
+
+import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, MousePointer, Eye, Lightbulb, Zap, Target, ArrowRight } from 'lucide-react';
-import { blogPosts } from '../data/blogPosts';
+import { Trophy, MousePointer, Eye, Lightbulb, Zap, Target, ArrowRight, ArrowDown } from 'lucide-react';
+import { BlogPost } from '../types';
+import { supabase } from '../lib/supabaseClient';
 import useIntersectionObserver from '../hooks/useIntersectionObserver';
+import Skeleton from '../components/Skeleton';
+import { getThemeColor } from '../lib/utils';
 
 const ResultMetricCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; description: string; style?: React.CSSProperties; }> = ({ icon: Icon, label, value, description, style }) => {
     const [ref, isVisible] = useIntersectionObserver({ threshold: 0.5 });
@@ -16,15 +20,79 @@ const ResultMetricCard: React.FC<{ icon: React.ElementType; label: string; value
     );
 };
 
+const ResultsSkeleton: React.FC = () => {
+    return (
+        <div className="bg-light pb-24">
+            {/* Hero Skeleton */}
+            <div className="bg-white text-center py-24 px-4">
+                <Skeleton className="h-4 w-48 mx-auto mb-4" />
+                <Skeleton className="h-12 w-3/4 max-w-2xl mx-auto mb-6" />
+                <Skeleton className="h-6 w-1/2 max-w-xl mx-auto" />
+            </div>
+            {/* Metrics Skeleton */}
+             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                     {[...Array(3)].map((_, i) => (
+                         <div key={i} className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200 text-center flex flex-col items-center">
+                             <Skeleton className="h-12 w-12 rounded-full mb-4" />
+                             <Skeleton className="h-12 w-32 mb-2" />
+                             <Skeleton className="h-6 w-24 mb-2" />
+                             <Skeleton className="h-4 w-40" />
+                         </div>
+                     ))}
+                </div>
+            </div>
+             {/* Chart Skeleton */}
+             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-24">
+                 <Skeleton className="h-8 w-64 mx-auto mb-16" />
+                 <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
+                    <Skeleton className="h-80 w-full rounded-lg" />
+                 </div>
+             </div>
+        </div>
+    );
+};
+
 interface TooltipData {
     x: number;
     y: number;
-    post: typeof blogPosts[0];
+    post: BlogPost;
 }
 
 const ResultsPage: React.FC = () => {
+    const [posts, setPosts] = useState<BlogPost[]>([]);
+    const [loading, setLoading] = useState(true);
     const [tooltip, setTooltip] = useState<TooltipData | null>(null);
-    const allPostsChronological = useMemo(() => [...blogPosts].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()), []);
+
+    // Dynamic chart colors
+    const [colors, setColors] = useState({ primary: '#000000', muted: '#9CA3AF', chart: '#F59E0B' });
+
+    useEffect(() => {
+        setColors({
+            primary: getThemeColor('primary', '#000000'),
+            muted: getThemeColor('muted', '#9CA3AF'),
+            chart: getThemeColor('chart', '#F59E0B')
+        });
+    }, []);
+
+    useEffect(() => {
+        const fetchPosts = async () => {
+            const { data, error } = await supabase
+                .from('posts')
+                .select('*')
+                .order('date', { ascending: true });
+            
+            if (!error && data) {
+                setPosts(data as BlogPost[]);
+            } else {
+                console.error("Failed to fetch posts for results page:", error);
+            }
+            setLoading(false);
+        };
+        fetchPosts();
+    }, []);
+    
+    const allPostsChronological = posts;
     const firstPost = allPostsChronological[0];
     const latestPost = allPostsChronological[allPostsChronological.length - 1];
 
@@ -35,6 +103,8 @@ const ResultsPage: React.FC = () => {
     }, []);
 
     const chartData = useMemo(() => {
+        if (allPostsChronological.length < 2) return null;
+
         const SVG_WIDTH = 900;
         const SVG_HEIGHT = 400;
         const PADDING = { top: 40, right: 60, bottom: 50, left: 60 };
@@ -78,6 +148,7 @@ const ResultsPage: React.FC = () => {
     }, [allPostsChronological]);
 
     const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+        if (!chartData) return;
         const svg = e.currentTarget;
         const pt = svg.createSVGPoint();
         pt.x = e.clientX;
@@ -128,6 +199,14 @@ const ResultsPage: React.FC = () => {
     const [chartRef, isChartVisible] = useIntersectionObserver();
     const [learningsRef, isLearningsVisible] = useIntersectionObserver();
     const [ctaRef, isCtaVisible] = useIntersectionObserver();
+
+    if (loading) {
+        return <ResultsSkeleton />;
+    }
+    
+    if (!latestPost || !firstPost) {
+        return <div className="py-40 text-center">Not enough data to display results.</div>
+    }
 
 
     return (
@@ -181,16 +260,39 @@ const ResultsPage: React.FC = () => {
                     A visual comparison of where the challenge started versus where it ended.
                 </p>
             </div>
-            <div className="flex items-center justify-center gap-4 md:gap-8">
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
                 {/* Day 1 Card */}
-                <div className={`flex-shrink-0 bg-light p-8 rounded-2xl shadow-md border border-gray-200 w-64 text-center transition-all duration-800 delay-200 ${isJourneyVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
+                <div className={`flex-shrink-0 bg-light p-8 rounded-2xl shadow-md border border-gray-200 w-full max-w-xs sm:w-64 text-center transition-all duration-800 delay-200 ${isJourneyVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
                     <p className="text-sm font-bold text-muted uppercase">Day 1</p>
                     <p className="text-dark font-mono text-3xl font-bold mt-2">Not Indexed</p>
                     <p className="text-muted text-sm mt-2">0 Clicks, 0 Impressions</p>
                 </div>
 
-                {/* Connector */}
-                <div className="relative flex-grow max-w-[200px] h-1 bg-gray-200">
+                {/* Vertical Connector for Mobile */}
+                <div className="md:hidden relative w-px h-20 my-4 bg-gray-200">
+                    <div 
+                        className="absolute top-0 left-0 w-px h-full bg-gradient-to-b from-primary to-primary/50 transition-transform duration-[1200ms] ease-out"
+                        style={{
+                            transformOrigin: 'top',
+                            transform: isJourneyVisible ? 'scaleY(1)' : 'scaleY(0)',
+                            transitionDelay: '500ms',
+                        }}
+                    ></div>
+                    <div
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 opacity-0 transition-opacity duration-600 ease-out"
+                        style={{ transitionDelay: '1500ms', opacity: isJourneyVisible ? 1 : 0 }}
+                    >
+                        <div
+                            className="bg-light p-2 rounded-full shadow-md border border-gray-200 transition-transform duration-600 ease-out"
+                            style={{ transitionDelay: '1500ms', transform: `translateY(${isJourneyVisible ? 0 : '20px'})` }}
+                        >
+                            <ArrowDown className="h-8 w-8 text-primary"/>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Horizontal Connector for Desktop */}
+                <div className="hidden md:flex relative flex-grow max-w-[200px] h-1 bg-gray-200">
                     <div 
                         className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-primary/50 transition-transform duration-[1200ms] ease-out"
                         style={{
@@ -213,7 +315,7 @@ const ResultsPage: React.FC = () => {
                 </div>
                 
                 {/* Day 60 Card */}
-                <div className={`flex-shrink-0 bg-white p-8 rounded-2xl shadow-xl border-2 border-primary w-72 text-center transition-all duration-800 delay-400 ${isJourneyVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
+                <div className={`flex-shrink-0 bg-white p-8 rounded-2xl shadow-xl border-2 border-primary w-full max-w-xs sm:w-72 text-center transition-all duration-800 delay-400 ${isJourneyVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
                     <p className="text-sm font-bold text-primary uppercase">Day 60</p>
                     <p className="text-primary font-mono text-5xl font-bold mt-2">#{latestPost.metrics.rank}</p>
                     <p className="text-muted text-sm mt-2">{latestPost.metrics.clicks} Clicks, {latestPost.metrics.impressions} Impressions</p>
@@ -232,13 +334,15 @@ const ResultsPage: React.FC = () => {
                 </p>
             </div>
             <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-lg border border-gray-200 relative">
+                { chartData ? (
+                <>
                 <svg viewBox={`0 0 ${chartData.svgWidth} ${chartData.svgHeight}`} className="w-full h-auto" onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
                     <defs>
                         <linearGradient id="impressionGradientResults" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor="#6B7280" stopOpacity={0.1}/><stop offset="100%" stopColor="#6B7280" stopOpacity={0}/>
+                            <stop offset="0%" stopColor={colors.muted} stopOpacity={0.1}/><stop offset="100%" stopColor={colors.muted} stopOpacity={0}/>
                         </linearGradient>
                         <linearGradient id="rankGradientResults" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.1}/><stop offset="100%" stopColor="#F59E0B" stopOpacity={0}/>
+                            <stop offset="0%" stopColor={colors.chart} stopOpacity={0.1}/><stop offset="100%" stopColor={colors.chart} stopOpacity={0}/>
                         </linearGradient>
                          <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
                             <path d="M 0 0 L 10 5 L 0 10 z" fill="#10B981" />
@@ -250,15 +354,15 @@ const ResultsPage: React.FC = () => {
                     <text x={chartData.padding.left - 10} y={chartData.svgHeight - chartData.padding.bottom} textAnchor="end" className="text-xs fill-muted font-semibold">0</text>
                     <text x={10} y={chartData.svgHeight/2} className="text-xs fill-muted font-bold" transform={`rotate(-90 10,${chartData.svgHeight/2})`}>Impressions</text>
                     
-                    <text x={chartData.svgWidth-chartData.padding.right + 10} y={chartData.padding.top} dy="0.3em" textAnchor="start" className="text-xs fill-primary font-semibold">1</text>
-                    <text x={chartData.svgWidth-chartData.padding.right + 10} y={chartData.svgHeight - chartData.padding.bottom} textAnchor="start" className="text-xs fill-primary font-semibold">{'>'}100</text>
-                    <text x={chartData.svgWidth - 15} y={chartData.svgHeight/2} className="text-xs fill-primary font-bold" transform={`rotate(90 ${chartData.svgWidth-15},${chartData.svgHeight/2})`}>Rank (Higher is Better)</text>
+                    <text x={chartData.svgWidth-chartData.padding.right + 10} y={chartData.padding.top} dy="0.3em" textAnchor="start" className="text-xs font-semibold" fill={colors.chart}>1</text>
+                    <text x={chartData.svgWidth-chartData.padding.right + 10} y={chartData.svgHeight - chartData.padding.bottom} textAnchor="start" className="text-xs font-semibold" fill={colors.chart}>{'>'}100</text>
+                    <text x={chartData.svgWidth - 15} y={chartData.svgHeight/2} className="text-xs font-bold" fill={colors.chart} transform={`rotate(90 ${chartData.svgWidth-15},${chartData.svgHeight/2})`}>Rank (Higher is Better)</text>
                     
                     <path d={`M${chartData.points[0].x},${chartData.svgHeight - chartData.padding.bottom} L${chartData.impressionLinePoints} L${chartData.points[chartData.points.length-1].x},${chartData.svgHeight - chartData.padding.bottom} Z`} fill="url(#impressionGradientResults)" />
-                    <polyline points={chartData.impressionLinePoints} fill="none" stroke="#6B7280" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 2000, strokeDashoffset: 2000, animation: 'stroke-draw 2s 0.5s ease-out forwards' }} />
+                    <polyline points={chartData.impressionLinePoints} fill="none" stroke={colors.muted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 2000, strokeDashoffset: 2000, animation: 'stroke-draw 2s 0.5s ease-out forwards' }} />
                     
                     <path d={`M${chartData.points[0].x},${chartData.svgHeight - chartData.padding.bottom} L${chartData.rankLinePoints} L${chartData.points[chartData.points.length-1].x},${chartData.svgHeight - chartData.padding.bottom} Z`} fill="url(#rankGradientResults)" />
-                    <polyline points={chartData.rankLinePoints} fill="none" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 2000, strokeDashoffset: 2000, animation: 'stroke-draw 2s ease-out forwards' }}/>
+                    <polyline points={chartData.rankLinePoints} fill="none" stroke={colors.chart} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 2000, strokeDashoffset: 2000, animation: 'stroke-draw 2s ease-out forwards' }}/>
 
                     {chartData.annotations.map((note, i) => (
                         <g key={i} className="fade-in" style={{ animationDelay: `${2 + i * 0.3}s` }}>
@@ -270,9 +374,9 @@ const ResultsPage: React.FC = () => {
 
                     {tooltip && (
                         <>
-                            <line x1={tooltip.x} y1={chartData.padding.top} x2={tooltip.x} y2={chartData.svgHeight - chartData.padding.bottom} stroke="#9CA3AF" strokeDasharray="3,3" />
-                            <circle cx={tooltip.x} cy={chartData.points.find(p => p.post.id === tooltip.post.id)?.yImpressions} r="5" fill="white" stroke="#6B7280" strokeWidth="2" />
-                            <circle cx={tooltip.x} cy={chartData.points.find(p => p.post.id === tooltip.post.id)?.yRank} r="5" fill="white" stroke="#F59E0B" strokeWidth="2" />
+                            <line x1={tooltip.x} y1={chartData.padding.top} x2={tooltip.x} y2={chartData.svgHeight - chartData.padding.bottom} stroke={colors.muted} strokeDasharray="3,3" />
+                            <circle cx={tooltip.x} cy={chartData.points.find(p => p.post.id === tooltip.post.id)?.yImpressions} r="5" fill="white" stroke={colors.muted} strokeWidth="2" />
+                            <circle cx={tooltip.x} cy={chartData.points.find(p => p.post.id === tooltip.post.id)?.yRank} r="5" fill="white" stroke={colors.chart} strokeWidth="2" />
                         </>
                     )}
                 </svg>
@@ -281,11 +385,13 @@ const ResultsPage: React.FC = () => {
                     <div className="absolute bg-dark text-white p-3 rounded-lg shadow-xl text-xs w-48 pointer-events-none transition-all duration-100" style={{ top: `${tooltip.y - 120}px`, left: tooltip.x > chartData.svgWidth / 2 ? `${tooltip.x - 200}px` : `${tooltip.x + 10}px` }}>
                         <p className="font-bold border-b border-gray-600 pb-1 mb-1">{tooltip.post.date}</p>
                         <p className="font-semibold">{tooltip.post.title}</p>
-                        <p className="mt-2"><span className="text-primary font-semibold">Rank:</span> {tooltip.post.metrics.rank}</p>
+                        <p className="mt-2"><span className="font-semibold" style={{ color: colors.chart }}>Rank:</span> {tooltip.post.metrics.rank}</p>
                         <p><span className="text-muted font-semibold">Clicks:</span> {tooltip.post.metrics.clicks}</p>
                         <p><span className="text-muted font-semibold">Impressions:</span> {tooltip.post.metrics.impressions}</p>
                     </div>
                 )}
+                </>
+                ) : <div className="text-center p-12 text-muted">Not enough data for chart.</div> }
             </div>
         </div>
       </section>
@@ -325,8 +431,8 @@ const ResultsPage: React.FC = () => {
                     The same data-driven, transparent process that powered this challenge can be applied to grow your business. Let's talk about your goals.
                 </p>
                 <div className="mt-8">
-                    <Link to="/work-with-me" className="group inline-flex items-center justify-center bg-primary text-dark font-bold py-3 px-8 rounded-lg text-lg transition-all duration-300 shadow-lg hover:brightness-95">
-                        Let's Work Together
+                    <Link to="/work-with-me" className="group inline-flex items-center justify-center bg-primary text-primary-foreground font-bold py-3 px-8 rounded-lg text-lg transition-all duration-300 shadow-lg hover:brightness-95">
+                        Apply This Strategy to Your Brand
                         <ArrowRight className="ml-2 transition-transform duration-300 group-hover:translate-x-1" />
                     </Link>
                 </div>

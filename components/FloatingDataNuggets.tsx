@@ -1,4 +1,6 @@
+
 import React, { useRef, useEffect } from 'react';
+import { getThemeColor, hexToRgba } from '../lib/utils';
 
 // --- Configuration ---
 const NUGGET_CONTENT = [
@@ -21,8 +23,8 @@ const MOUSE_REPULSION_RADIUS = 120;
 const MOUSE_REPULSION_STRENGTH = 3;
 
 // --- Helper Functions ---
-const drawIcon = (ctx: CanvasRenderingContext2D, type: string, x: number, y: number, size: number, opacity: number) => {
-    ctx.strokeStyle = `rgba(245, 158, 11, ${opacity})`; // primary with opacity
+const drawIcon = (ctx: CanvasRenderingContext2D, type: string, x: number, y: number, size: number, opacity: number, colorHex: string) => {
+    ctx.strokeStyle = hexToRgba(colorHex, opacity);
     ctx.lineWidth = 1.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -152,9 +154,17 @@ class Nugget {
     width: number = 0;
     height: number;
 
-    constructor(canvasWidth: number, canvasHeight: number, ctx: CanvasRenderingContext2D) {
+    // Theme colors
+    lightColor: string;
+    secondaryColor: string;
+    primaryColor: string;
+
+    constructor(canvasWidth: number, canvasHeight: number, ctx: CanvasRenderingContext2D, colors: { light: string, secondary: string, primary: string }) {
         this.id = Math.random();
         this.content = NUGGET_CONTENT[Math.floor(Math.random() * NUGGET_CONTENT.length)];
+        this.lightColor = colors.light;
+        this.secondaryColor = colors.secondary;
+        this.primaryColor = colors.primary;
         
         this.size = Math.random() * 0.5 + 0.7; // Scale factor 0.7 to 1.2
         this.base_opacity = this.size * 0.7;
@@ -217,11 +227,13 @@ class Nugget {
         ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
         ctx.shadowBlur = 10;
         ctx.shadowOffsetY = 4;
+        
         const gradient = ctx.createLinearGradient(this.x, this.y, this.x, this.y + this.height);
-        gradient.addColorStop(0, `rgba(255, 255, 255, ${this.opacity * 0.9})`);
-        gradient.addColorStop(1, `rgba(249, 250, 251, ${this.opacity * 0.9})`); // gray-50
+        gradient.addColorStop(0, hexToRgba('#FFFFFF', this.opacity * 0.9));
+        gradient.addColorStop(1, hexToRgba(this.lightColor, this.opacity * 0.9));
+        
         ctx.fillStyle = gradient;
-        ctx.strokeStyle = `rgba(209, 213, 219, ${this.opacity * 0.5})`; // gray-300
+        ctx.strokeStyle = hexToRgba('#D1D5DB', this.opacity * 0.5); // gray-300
         ctx.lineWidth = 1;
         drawRoundedRect(ctx, this.x - this.width / 2, this.y - this.height / 2, this.width, this.height, this.height / 2);
         ctx.fill();
@@ -232,13 +244,13 @@ class Nugget {
         // Content
         const fontSize = 12 * this.size;
         ctx.font = `500 ${fontSize}px 'Roboto Mono', monospace`;
-        ctx.fillStyle = `rgba(55, 65, 81, ${this.opacity})`; // gray-700
+        ctx.fillStyle = hexToRgba(this.secondaryColor, this.opacity);
         
         const contentStartX = this.x - this.width / 2 + 12;
         const iconY = this.y - (fontSize / 1.5);
         const textY = this.y + fontSize / 3;
 
-        drawIcon(ctx, this.content.type, contentStartX, iconY, fontSize * 1.2, this.opacity);
+        drawIcon(ctx, this.content.type, contentStartX, iconY, fontSize * 1.2, this.opacity, this.primaryColor);
         ctx.fillText(this.content.text, contentStartX + 20, textY);
     }
 }
@@ -248,10 +260,19 @@ const FloatingDataNuggets: React.FC<{ isAnimating: boolean }> = ({ isAnimating }
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const nuggetsRef = useRef<Nugget[]>([]);
     const mouseRef = useRef({ x: -1000, y: -1000 });
-    // FIX: Provided initial value to useRef to fix "Expected 1 arguments, but got 0" error.
     const animationFrameId = useRef<number | undefined>(undefined);
-    // FIX: Provided initial value to useRef to fix "Expected 1 arguments, but got 0" error.
     const spawnIntervalId = useRef<number | undefined>(undefined);
+    
+    // Theme Colors Refs
+    const themeColors = useRef({ light: '#F3F4F6', secondary: '#4B5563', primary: '#000000' });
+
+    useEffect(() => {
+        themeColors.current = {
+            light: getThemeColor('light', '#F3F4F6'),
+            secondary: getThemeColor('secondary', '#4B5563'),
+            primary: getThemeColor('primary', '#000000')
+        };
+    }, []);
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -275,8 +296,8 @@ const FloatingDataNuggets: React.FC<{ isAnimating: boolean }> = ({ isAnimating }
         setupCanvas();
 
         const spawnNugget = () => {
-            if (nuggetsRef.current.length < (dimensions.width * dimensions.height) / 35000) { // Reduced density
-                 nuggetsRef.current.push(new Nugget(dimensions.width, dimensions.height, ctx));
+            if (nuggetsRef.current.length < (dimensions.width * dimensions.height) / 35000) { 
+                 nuggetsRef.current.push(new Nugget(dimensions.width, dimensions.height, ctx, themeColors.current));
             }
         };
 

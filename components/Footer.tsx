@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Linkedin, Twitter, PenSquare } from 'lucide-react';
@@ -12,11 +13,12 @@ const Footer: React.FC = () => {
   const navLinks = {
     'The Challenge': [
         { name: 'Challenge Log', href: '/blog' },
-        { name: 'The Process', href: '/process' },
+        { name: 'The Challenge', href: '/challenge' },
         { name: 'Results', href: '/results' },
     ],
     'Connect': [
         { name: 'About', href: '/about' },
+        { name: 'Services', href: '/services' },
         { name: 'Work With Me', href: '/work-with-me' },
         { name: 'Contact', href: '/contact' },
     ],
@@ -50,7 +52,7 @@ const Footer: React.FC = () => {
 
         <div className="mt-12 pt-8 border-t border-secondary/20 flex flex-col sm:flex-row justify-between items-center">
             <p className="text-base text-center sm:text-left">
-                &copy; {new Date().getFullYear()} Alex Doe. All rights reserved.
+                &copy; {new Date().getFullYear()} Eswarapandi Vinayagamoorthy. All rights reserved.
             </p>
             <div className="flex justify-center space-x-6 mt-4 sm:mt-0">
                 {socialLinks.map(social => (

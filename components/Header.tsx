@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { X, Menu } from 'lucide-react';
@@ -28,7 +29,8 @@ const Header: React.FC = () => {
     { path: '/', label: 'Home' },
     { path: '/blog', label: 'Challenge Log' },
     { path: '/about', label: 'About' },
-    { path: '/process', label: 'The Process' },
+    { path: '/services', label: 'Services' },
+    { path: '/challenge', label: 'The Challenge' },
     { path: '/results', label: 'Results' },
     { path: '/work-with-me', label: 'Work With Me' },
     { path: '/contact', label: 'Contact' },
@@ -63,7 +65,7 @@ const Header: React.FC = () => {
             <div className="ml-6">
                 <Link
                     to={ctaNavItem.path}
-                    className="inline-block bg-primary text-dark font-bold py-2 px-5 rounded-full text-sm hover:brightness-95 transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md shadow-primary/20"
+                    className="inline-block bg-primary text-white font-bold py-2 px-5 rounded-full text-sm hover:brightness-95 transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md shadow-primary/20"
                 >
                     {ctaNavItem.label}
                 </Link>

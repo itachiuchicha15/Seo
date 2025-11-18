@@ -11,15 +11,20 @@ const useIntersectionObserver = (
 ): [RefObject<any>, boolean] => {
   const [isIntersecting, setIntersecting] = useState(false);
   const ref = useRef<any>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
+    if (observerRef.current) {
+        observerRef.current.disconnect();
+    }
+    
+    observerRef.current = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setIntersecting(true);
           // Disconnect observer after first intersection to prevent re-triggering
-          if (ref.current) {
-            observer.unobserve(ref.current);
+          if (ref.current && observerRef.current) {
+            observerRef.current.unobserve(ref.current);
           }
         }
       },
@@ -28,13 +33,13 @@ const useIntersectionObserver = (
 
     const currentRef = ref.current;
     if (currentRef) {
-      observer.observe(currentRef);
+      observerRef.current.observe(currentRef);
     }
 
     return () => {
-      if (currentRef) {
-        observer.unobserve(currentRef);
-      }
+        if(observerRef.current) {
+            observerRef.current.disconnect();
+        }
     };
   }, [options]);
 

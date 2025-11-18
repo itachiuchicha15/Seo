@@ -20,7 +20,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, style }) => {
     >
       <div className="relative overflow-hidden">
         <Link to={`/blog/${post.slug}`}>
-          <img loading="lazy" className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-110" src={post.imageUrl} alt={post.title} />
+          <img loading="lazy" className="h-48 w-full object-cover transition-transform duration-300 group-hover:scale-110" src={post.image.url} alt={post.image.alt_text || post.title} />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
         </Link>
         <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
