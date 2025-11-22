@@ -1,4 +1,5 @@
 
+
 export interface BlogPost {
   id: number;
   slug: string;
@@ -33,4 +34,18 @@ export interface ContactMessage {
   email: string;
   message: string;
   is_read: boolean;
+}
+
+export interface ChallengeMilestone {
+  id: number;
+  title: string;
+  is_completed: boolean;
+  display_order: number;
+}
+
+export interface ChallengePhase {
+  id: number;
+  title: string;
+  is_completed: boolean;
+  display_order: number;
 }

@@ -1,26 +1,35 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { BlogPost } from '../types';
 import { supabase } from '../lib/supabaseClient';
-import { TrendingUp, MousePointer, Eye, ArrowLeft, ArrowRight, Twitter, Linkedin } from 'lucide-react';
+import { TrendingUp, MousePointer, Eye, ArrowLeft, ArrowRight, Linkedin, Calendar, Clock, Share2, Copy, Check, ArrowUpRight, Mail } from 'lucide-react';
 import BackToTopButton from '../components/BackToTopButton';
 import Breadcrumbs from '../components/Breadcrumbs';
 import PostCard from '../components/PostCard';
 import Skeleton from '../components/Skeleton';
 
-
-// FIX: Define a type for the navigation post link to resolve type mismatch.
+// Define interface for navigation posts (subset of BlogPost)
 interface NavPost {
   title: string;
   slug: string;
+  date: string;
+  image: {
+    url: string;
+    alt_text: string;
+  };
 }
 
 const BlogPostSkeleton: React.FC = () => {
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
-            <Skeleton className="h-6 w-48 mb-8" />
-            {/* Hero */}
-            <div className="relative rounded-2xl overflow-hidden mb-12 shadow-2xl shadow-primary/10 h-[450px] bg-gray-200 shimmer"></div>
+            <div className="max-w-3xl mx-auto text-center mb-12">
+                 <Skeleton className="h-4 w-32 mx-auto mb-4" />
+                 <Skeleton className="h-10 w-3/4 mx-auto mb-6" />
+                 <Skeleton className="h-6 w-1/2 mx-auto" />
+            </div>
+            
+            <div className="relative rounded-2xl overflow-hidden mb-12 shadow-lg h-[450px] bg-gray-200 shimmer"></div>
             
             <div className="lg:grid lg:grid-cols-12 lg:gap-x-12">
                 <div className="lg:col-span-8 space-y-6">
@@ -41,11 +50,6 @@ const BlogPostSkeleton: React.FC = () => {
                             <Skeleton className="h-6 w-full" />
                         </div>
                      </div>
-                     <div className="bg-light p-6 rounded-2xl border border-gray-200 text-center flex flex-col items-center">
-                        <Skeleton className="h-24 w-24 rounded-full mb-4" />
-                        <Skeleton className="h-6 w-40 mb-2" />
-                        <Skeleton className="h-4 w-32" />
-                     </div>
                 </aside>
             </div>
         </div>
@@ -61,6 +65,22 @@ const BlogPostPage: React.FC = () => {
   const [previousPost, setPreviousPost] = useState<NavPost | null>(null);
   const [nextPost, setNextPost] = useState<NavPost | null>(null);
   const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
+  
+  // Reading Progress State
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalHeight = document.body.scrollHeight - window.innerHeight;
+      if (totalHeight > 0) {
+          const progress = (window.scrollY / totalHeight) * 100;
+          setScrollProgress(progress);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -84,11 +104,24 @@ const BlogPostPage: React.FC = () => {
 
         // Fetch previous and next posts based on date
         const currentDate = currentPost.date;
-        const { data: prevData } = await supabase.from('posts').select('title, slug').lt('date', currentDate).order('date', { ascending: false }).limit(1).single();
-        setPreviousPost(prevData);
+        
+        const { data: prevData } = await supabase
+            .from('posts')
+            .select('title, slug, date, image')
+            .lt('date', currentDate)
+            .order('date', { ascending: false })
+            .limit(1)
+            .single();
+        setPreviousPost(prevData as NavPost);
 
-        const { data: nextData } = await supabase.from('posts').select('title, slug').gt('date', currentDate).order('date', { ascending: true }).limit(1).single();
-        setNextPost(nextData);
+        const { data: nextData } = await supabase
+            .from('posts')
+            .select('title, slug, date, image')
+            .gt('date', currentDate)
+            .order('date', { ascending: true })
+            .limit(1)
+            .single();
+        setNextPost(nextData as NavPost);
 
         // Fetch related posts based on tags
         if (currentPost.tags && currentPost.tags.length > 0) {
@@ -144,8 +177,14 @@ const BlogPostPage: React.FC = () => {
       setOg('og:url', window.location.href);
 
     }
-    // No cleanup needed as we want these to persist until the next post loads
   }, [post]);
+  
+  const handleCopyLink = () => {
+      navigator.clipboard.writeText(window.location.href).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+      });
+  };
 
   if (loading) {
     return <div className="bg-white text-secondary fade-in"><BlogPostSkeleton /></div>;
@@ -153,9 +192,11 @@ const BlogPostPage: React.FC = () => {
 
   if (error || !post) {
     return (
-      <div className="text-center py-20 text-dark">
+      <div className="text-center py-32 text-dark">
         <h1 className="text-4xl font-bold">{error || 'Post not found!'}</h1>
-        <Link to="/blog" className="mt-4 inline-block text-primary hover:underline">Back to the Challenge Log</Link>
+        <Link to="/blog" className="mt-6 inline-block bg-primary text-white px-6 py-3 rounded-full font-bold hover:brightness-95 transition-all">
+            Back to the Challenge Log
+        </Link>
       </div>
     );
   }
@@ -166,133 +207,270 @@ const BlogPostPage: React.FC = () => {
   const breadcrumbLinks = [
     { label: 'Home', path: '/' },
     { label: 'Challenge Log', path: '/blog' },
-    { label: post.title, path: `/blog/${post.slug}` },
+    { label: post.title.length > 20 ? post.title.substring(0, 20) + '...' : post.title, path: `/blog/${post.slug}` },
   ];
 
+  // Calculate read time estimate (roughly 200 words per minute)
+  const wordCount = post.content.replace(/<[^>]*>/g, '').split(/\s+/).length;
+  const readTime = Math.ceil(wordCount / 200);
+
   return (
-    <div className="bg-white text-secondary fade-in">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+    <div className="bg-white text-secondary fade-in relative">
+      {/* Reading Progress Bar */}
+      <div className="fixed top-16 left-0 h-1 bg-gray-100 z-40 w-full">
+          <div className="h-full bg-primary transition-all duration-150 ease-out" style={{ width: `${scrollProgress}%` }}></div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 relative">
         <div className="mb-8">
             <Breadcrumbs links={breadcrumbLinks} />
         </div>
 
-        {/* Hero Section */}
-        <header className="relative rounded-2xl overflow-hidden mb-12 shadow-2xl shadow-primary/10">
-            <img src={post.image.url} alt={post.image.alt_text} className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-dark/90 via-dark/70 to-transparent"></div>
-            <div className="relative z-10 flex flex-col justify-end min-h-[450px] p-8 md:p-12">
-                <div className="flex flex-wrap gap-2 mb-4">
-                    {post.categories?.map(cat => (
-                        <span key={cat} className="inline-block bg-secondary text-light text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">{cat}</span>
-                    ))}
-                    {post.tags.map(tag => (
-                        <span key={tag} className="inline-block bg-primary text-dark text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">{tag}</span>
-                    ))}
+        {/* Editorial Header */}
+        <header className="max-w-4xl mx-auto text-center mb-12 relative">
+             {/* Decorative background blobs */}
+             <div className="absolute inset-0 -z-10 pointer-events-none">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-primary/5 to-transparent rounded-full blur-3xl opacity-60"></div>
+             </div>
+
+            <div className="flex flex-wrap justify-center gap-2 mb-6">
+                {post.categories?.map(cat => (
+                    <span key={cat} className="inline-block bg-primary/5 text-primary border border-primary/10 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                        {cat}
+                    </span>
+                ))}
+            </div>
+            <h1 className="text-4xl md:text-6xl font-extrabold text-dark leading-tight tracking-tight mb-6">
+                {post.title}
+            </h1>
+            <p className="text-xl text-muted leading-relaxed mb-8 max-w-2xl mx-auto">
+                {post.excerpt}
+            </p>
+            
+            <div className="flex items-center justify-center gap-6 text-sm text-muted border-t border-b border-gray-100 py-4 mb-8">
+                <div className="flex items-center gap-2">
+                     <img className="h-8 w-8 rounded-full object-cover border border-gray-200 ring-2 ring-white shadow-sm" src="https://picsum.photos/seed/avatar/100/100" alt={post.author} />
+                     <span className="font-medium text-dark">{post.author}</span>
                 </div>
-                <h1 className="text-4xl md:text-6xl font-extrabold text-white leading-tight">{post.title}</h1>
-                <div className="text-base text-gray-300 mt-4">
-                    Published on <time dateTime={post.date}>{new Date(post.date).toLocaleDateString()}</time>
-                    {post.updated_at && new Date(post.updated_at).toDateString() !== new Date(post.date).toDateString() && (
-                      <span className="italic"> (Updated on <time dateTime={post.updated_at}>{new Date(post.updated_at).toLocaleDateString()}</time>)</span>
-                    )}
-                     by {post.author}
+                <div className="hidden sm:block w-px h-4 bg-gray-300"></div>
+                <div className="flex items-center gap-1.5">
+                     <Calendar className="h-4 w-4" />
+                     <time dateTime={post.date}>{new Date(post.date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</time>
+                </div>
+                <div className="hidden sm:block w-px h-4 bg-gray-300"></div>
+                <div className="flex items-center gap-1.5">
+                     <Clock className="h-4 w-4" />
+                     <span>{readTime} min read</span>
                 </div>
             </div>
         </header>
+
+        {/* Immersive Featured Image */}
+        <div className="relative rounded-3xl overflow-hidden mb-16 shadow-2xl shadow-gray-200 group">
+            <img src={post.image.url} alt={post.image.alt_text} className="w-full h-auto max-h-[600px] object-cover transition-transform duration-1000 group-hover:scale-[1.02]" />
+             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
+        </div>
         
         <div className="lg:grid lg:grid-cols-12 lg:gap-x-12">
+          
           {/* Main Content */}
           <div className="lg:col-span-8">
             <article>
               <div 
-                className="prose prose-lg max-w-none prose-custom"
+                className="prose prose-lg md:prose-xl max-w-none prose-custom 
+                prose-headings:font-extrabold prose-headings:text-dark prose-headings:scroll-mt-24
+                prose-p:text-secondary prose-p:leading-relaxed 
+                prose-a:text-primary prose-a:no-underline prose-a:border-b-2 prose-a:border-primary/20 hover:prose-a:border-primary 
+                prose-img:rounded-2xl prose-img:shadow-xl
+                prose-blockquote:border-l-4 prose-blockquote:border-primary prose-blockquote:bg-gray-50 prose-blockquote:py-4 prose-blockquote:px-6 prose-blockquote:rounded-r-lg prose-blockquote:italic prose-blockquote:text-dark
+                first-letter:float-left first-letter:text-7xl first-letter:font-bold first-letter:text-primary first-letter:mr-3 first-letter:mt-[-10px]"
                 dangerouslySetInnerHTML={{ __html: post.content }}
               />
             </article>
 
-            {/* Post Navigation */}
-            <div className="mt-12 pt-8 border-t border-gray-200 flex flex-col sm:flex-row justify-between gap-8">
+            {/* Tags */}
+            {post.tags && post.tags.length > 0 && (
+                <div className="mt-12 pt-8 border-t border-gray-200">
+                    <h3 className="text-sm font-bold text-muted uppercase tracking-wider mb-4">Related Topics</h3>
+                    <div className="flex flex-wrap gap-2">
+                        {post.tags.map(tag => (
+                            <Link to={`/blog?tag=${tag}`} key={tag} className="text-sm font-medium bg-gray-100 text-secondary px-4 py-2 rounded-lg hover:bg-primary hover:text-white transition-colors duration-200">
+                                #{tag}
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Rich Post Navigation */}
+            <nav className="mt-16 grid grid-cols-1 md:grid-cols-2 gap-6">
                 {previousPost ? (
-                    <Link to={`/blog/${previousPost.slug}`} className="group text-left">
-                        <p className="text-sm text-muted">Previous Post</p>
-                        <p className="mt-1 font-bold text-lg text-dark group-hover:text-primary transition-colors flex items-center gap-2">
-                            <ArrowLeft className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
-                            {previousPost.title}
-                        </p>
+                    <Link to={`/blog/${previousPost.slug}`} className="group relative h-40 rounded-2xl overflow-hidden flex items-end p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+                         {previousPost.image && (
+                             <img src={previousPost.image.url} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                         )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 group-hover:opacity-90" />
+                        <div className="relative z-10 text-white w-full">
+                            <span className="text-xs font-bold uppercase tracking-wider opacity-80 mb-1 flex items-center gap-1"><ArrowLeft className="w-3 h-3" /> Previous</span>
+                            <h4 className="font-bold text-lg line-clamp-2 leading-tight group-hover:text-white transition-colors">{previousPost.title}</h4>
+                        </div>
                     </Link>
-                ) : <div />}
-                 {nextPost ? (
-                    <Link to={`/blog/${nextPost.slug}`} className="group text-right">
-                        <p className="text-sm text-muted">Next Post</p>
-                        <p className="mt-1 font-bold text-lg text-dark group-hover:text-primary transition-colors flex items-center justify-end gap-2">
-                            {nextPost.title}
-                            <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                        </p>
+                ) : <div />} 
+
+                {nextPost && (
+                    <Link to={`/blog/${nextPost.slug}`} className="group relative h-40 rounded-2xl overflow-hidden flex items-end p-6 text-right shadow-lg hover:shadow-xl transition-all duration-300">
+                         {nextPost.image && (
+                             <img src={nextPost.image.url} alt="" className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                         )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 group-hover:opacity-90" />
+                        <div className="relative z-10 text-white w-full flex flex-col items-end">
+                            <span className="text-xs font-bold uppercase tracking-wider opacity-80 mb-1 flex items-center gap-1">Next <ArrowRight className="w-3 h-3" /></span>
+                            <h4 className="font-bold text-lg line-clamp-2 leading-tight group-hover:text-white transition-colors">{nextPost.title}</h4>
+                        </div>
                     </Link>
-                ) : <div />}
-            </div>
+                )}
+            </nav>
           </div>
 
-          {/* Sidebar */}
-          <aside className="lg:col-span-4 mt-12 lg:mt-0">
+          {/* Sticky Sidebar */}
+          <aside className="lg:col-span-4 mt-16 lg:mt-0">
             <div className="sticky top-24 space-y-8">
               
-              <div className="bg-light p-6 rounded-2xl border border-gray-200">
-                <h3 className="text-xl font-bold text-dark mb-4 border-b border-gray-200 pb-3">Post Metrics</h3>
-                <ul className="space-y-4 pt-2">
-                  <li className="flex items-center justify-between text-muted">
-                    <div className="flex items-center gap-3">
-                      <TrendingUp className="text-primary h-6 w-6"/>
-                      <span>Current Rank</span>
+              {/* Mission Control Widget (Dark Mode HUD) */}
+              <div className="bg-black p-6 rounded-2xl border border-gray-800 text-white shadow-2xl overflow-hidden relative group">
+                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity duration-500">
+                    <TrendingUp className="w-24 h-24 text-white" />
+                </div>
+                
+                <div className="flex items-center justify-between mb-6 border-b border-gray-800 pb-4 relative z-10">
+                     <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                        Mission Control
+                    </h3>
+                    <span className="flex items-center gap-1.5">
+                        <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        </span>
+                        <span className="text-[10px] font-bold text-green-400 uppercase tracking-wide">Live</span>
+                    </span>
+                </div>
+
+                <ul className="space-y-6 relative z-10">
+                  <li className="flex items-center justify-between group/item">
+                    <div className="flex items-center gap-3 text-gray-400 group-hover/item:text-white transition-colors">
+                      <TrendingUp className="h-5 w-5 text-white"/>
+                      <span className="font-medium text-sm">SERP Rank</span>
                     </div>
-                    <span className="font-mono font-bold text-xl text-dark">{post.metrics.rank}</span>
+                    <div className="text-right">
+                        <span className="font-mono font-bold text-2xl text-white block leading-none">{post.metrics.rank}</span>
+                         <span className="text-[10px] text-green-400 font-medium flex items-center justify-end gap-0.5">
+                             <ArrowUpRight className="w-3 h-3" /> Top 10
+                         </span>
+                    </div>
                   </li>
-                  <li className="flex items-center justify-between text-muted">
-                    <div className="flex items-center gap-3">
-                      <MousePointer className="text-primary h-6 w-6"/>
-                      <span>Total Clicks</span>
+                  <li className="flex items-center justify-between group/item">
+                    <div className="flex items-center gap-3 text-gray-400 group-hover/item:text-white transition-colors">
+                      <MousePointer className="h-5 w-5 text-white"/>
+                      <span className="font-medium text-sm">Clicks</span>
                     </div>
-                    <span className="font-mono font-bold text-xl text-dark">{post.metrics.clicks}</span>
+                     <div className="text-right">
+                        <span className="font-mono font-bold text-2xl text-white block leading-none">{post.metrics.clicks}</span>
+                         <span className="text-[10px] text-green-400 font-medium flex items-center justify-end gap-0.5">
+                             <ArrowUpRight className="w-3 h-3" /> +12%
+                         </span>
+                    </div>
                   </li>
-                  <li className="flex items-center justify-between text-muted">
-                    <div className="flex items-center gap-3">
-                      <Eye className="text-primary h-6 w-6"/>
-                      <span>Total Impressions</span>
+                  <li className="flex items-center justify-between group/item">
+                    <div className="flex items-center gap-3 text-gray-400 group-hover/item:text-white transition-colors">
+                      <Eye className="h-5 w-5 text-white"/>
+                      <span className="font-medium text-sm">Impressions</span>
                     </div>
-                    <span className="font-mono font-bold text-xl text-dark">{post.metrics.impressions}</span>
+                     <div className="text-right">
+                        <span className="font-mono font-bold text-2xl text-white block leading-none">{post.metrics.impressions}</span>
+                         <span className="text-[10px] text-green-400 font-medium flex items-center justify-end gap-0.5">
+                             <ArrowUpRight className="w-3 h-3" /> +8%
+                         </span>
+                    </div>
                   </li>
                 </ul>
               </div>
 
-              <div className="bg-light p-6 rounded-2xl border border-gray-200 text-center">
-                <img className="h-24 w-24 rounded-full mx-auto shadow-md" src="https://picsum.photos/seed/avatar/200/200" alt={post.author} />
-                <h3 className="mt-4 text-xl font-bold text-dark">{post.author}</h3>
-                <p className="text-primary text-sm font-semibold">Digital Marketing Specialist</p>
-                <p className="text-muted text-sm mt-2">Documenting a 60-day challenge to rank a brand from scratch.</p>
-                <Link to="/about" className="mt-4 inline-block bg-primary text-white text-sm font-bold py-2 px-4 rounded-full hover:brightness-95 transition-all">
-                  About Me
+               {/* Newsletter / CTA Widget */}
+               <div className="bg-primary text-white p-6 rounded-2xl shadow-xl relative overflow-hidden group">
+                    <div className="absolute -right-8 -top-8 bg-white/10 w-32 h-32 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                    <div className="absolute -left-8 -bottom-8 bg-white/10 w-24 h-24 rounded-full blur-xl group-hover:scale-150 transition-transform duration-700 delay-100"></div>
+                    
+                    <div className="relative z-10">
+                        <div className="bg-white/20 w-10 h-10 rounded-lg flex items-center justify-center mb-4 backdrop-blur-sm">
+                            <Mail className="h-5 w-5 text-white" />
+                        </div>
+                        <h3 className="text-lg font-bold mb-2">Don't Miss an Update</h3>
+                        <p className="text-primary-foreground/80 text-sm mb-6 leading-relaxed">
+                            Join the journey. Get the latest rankings, strategies, and failures delivered straight to your inbox.
+                        </p>
+                        <form className="space-y-2" onSubmit={(e) => e.preventDefault()}>
+                            <input 
+                                type="email" 
+                                placeholder="Your email address" 
+                                className="w-full px-4 py-2.5 rounded-lg bg-white/10 border border-white/20 placeholder-white/50 text-white focus:outline-none focus:bg-white/20 focus:border-white/40 transition-all text-sm" 
+                            />
+                            <button className="w-full bg-white text-primary font-bold py-2.5 rounded-lg hover:bg-gray-100 transition-colors text-sm shadow-lg">
+                                Subscribe Free
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+              {/* Author Profile */}
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm text-center group hover:shadow-md transition-all">
+                <div className="relative inline-block">
+                    <img className="h-20 w-20 rounded-full mx-auto shadow-md object-cover ring-4 ring-light group-hover:ring-primary/20 transition-all" src="https://picsum.photos/seed/avatar/200/200" alt={post.author} />
+                    <div className="absolute bottom-0 right-0 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded border-2 border-white">PRO</div>
+                </div>
+                <h3 className="mt-4 text-lg font-bold text-dark">{post.author}</h3>
+                <p className="text-primary text-xs font-bold uppercase tracking-wide mt-1">SEO Specialist</p>
+                <p className="text-muted text-sm mt-4 leading-relaxed line-clamp-3">
+                    Documenting the raw, unfiltered journey of ranking a brand new site from scratch in 60 days.
+                </p>
+                <Link to="/about" className="mt-6 w-full inline-flex items-center justify-center gap-2 bg-gray-50 text-dark text-sm font-bold py-2.5 px-4 rounded-lg hover:bg-primary hover:text-white transition-all border border-gray-200 hover:border-primary">
+                  View Full Profile
                 </Link>
               </div>
 
-              <div className="bg-light p-6 rounded-2xl border border-gray-200">
-                <h3 className="text-xl font-bold text-dark mb-4">Share this post</h3>
-                <div className="space-y-3">
-                    <a 
-                        href={`https://twitter.com/intent/tweet?url=${postUrl}&text=${encodedTitle}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="w-full text-center bg-[#1DA1F2] text-white p-3 rounded-lg transition-opacity hover:opacity-90 flex items-center justify-center gap-2 font-semibold"
-                        aria-label="Share on Twitter"
+              {/* Share Widget */}
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <h3 className="text-xs font-bold text-muted uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Share2 className="w-3 h-3" />
+                    Share this update
+                </h3>
+                <div className="grid grid-cols-1 gap-3">
+                    <button 
+                        onClick={handleCopyLink}
+                        className={`w-full text-center p-2.5 rounded-lg transition-all flex items-center justify-center gap-2 font-semibold text-sm border ${copied ? 'bg-green-50 border-green-200 text-green-700' : 'bg-white border-gray-200 text-secondary hover:bg-gray-50'}`}
                     >
-                        <Twitter /> Share on Twitter
-                    </a>
-                    <a
-                        href={`https://www.linkedin.com/sharing/share-offsite/?url=${postUrl}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="w-full text-center bg-[#0077B5] text-white p-3 rounded-lg transition-opacity hover:opacity-90 flex items-center justify-center gap-2 font-semibold"
-                        aria-label="Share on LinkedIn"
-                    >
-                        <Linkedin /> Share on LinkedIn
-                    </a>
+                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} 
+                        {copied ? 'Copied!' : 'Copy Link'}
+                    </button>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                        <a 
+                            href={`https://twitter.com/intent/tweet?url=${postUrl}&text=${encodedTitle}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="w-full text-center bg-black text-white p-2.5 rounded-lg transition-opacity hover:opacity-80 flex items-center justify-center gap-2 font-semibold text-sm"
+                            aria-label="Share on X"
+                        >
+                            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
+                            Share on X
+                        </a>
+                        <a
+                            href={`https://www.linkedin.com/sharing/share-offsite/?url=${postUrl}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="w-full text-center bg-[#0077B5] text-white p-2.5 rounded-lg transition-opacity hover:opacity-90 flex items-center justify-center gap-2 font-semibold text-sm"
+                            aria-label="Share on LinkedIn"
+                        >
+                            <Linkedin className="w-4 h-4" /> LinkedIn
+                        </a>
+                    </div>
                 </div>
               </div>
             </div>
@@ -301,10 +479,13 @@ const BlogPostPage: React.FC = () => {
       </div>
       
        {relatedPosts.length > 0 && (
-        <section className="py-24 bg-light border-t border-gray-200">
+        <section className="py-24 bg-gray-50 border-t border-gray-200 mt-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <h2 className="text-3xl font-extrabold text-dark text-center mb-12">Related Posts</h2>
-                <div className="grid gap-10 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1">
+                <div className="flex items-center justify-between mb-12">
+                    <h2 className="text-3xl font-extrabold text-dark">More from the Log</h2>
+                    <Link to="/blog" className="text-primary font-bold hover:underline flex items-center gap-1">View All <ArrowRight className="w-4 h-4" /></Link>
+                </div>
+                <div className="grid gap-8 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-1">
                     {relatedPosts.map((relatedPost, index) => (
                         <PostCard 
                             key={relatedPost.id}

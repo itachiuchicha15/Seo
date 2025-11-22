@@ -2,35 +2,68 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { BlogPost } from '../../types';
+import { BlogPost, ChallengeMilestone, ChallengePhase } from '../../types';
 import { supabase } from '../../lib/supabaseClient';
-import { PlusCircle, Edit, Trash2, LogOut, Inbox, FileText } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, LogOut, Inbox, FileText, CheckCircle, Circle, Layers } from 'lucide-react';
 import Skeleton from '../../components/Skeleton';
 
 const AdminDashboardPage: React.FC = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [milestones, setMilestones] = useState<ChallengeMilestone[]>([]);
+  const [phases, setPhases] = useState<ChallengePhase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchPosts = async () => {
-        const { data, error } = await supabase
+    const fetchData = async () => {
+        const postsReq = supabase
             .from('posts')
             .select('*')
             .order('date', { ascending: false });
 
-        if (error) {
+        const milestonesReq = supabase
+            .from('challenge_milestones')
+            .select('*')
+            .order('display_order', { ascending: true });
+            
+        const phasesReq = supabase
+            .from('challenge_phases')
+            .select('*')
+            .order('display_order', { ascending: true });
+
+        const [postsRes, milestonesRes, phasesRes] = await Promise.all([postsReq, milestonesReq, phasesReq]);
+
+        if (postsRes.error) {
             setError('Could not fetch posts.');
-            console.error(error);
+            console.error(postsRes.error);
         } else {
-            setPosts(data as BlogPost[]);
+            setPosts(postsRes.data as BlogPost[]);
         }
+
+        if (milestonesRes.error) {
+             // Suppress missing table logs
+             if (milestonesRes.error.code !== 'PGRST205' && milestonesRes.error.code !== '42P01') {
+                 console.warn("Milestones table fetch error:", milestonesRes.error.message);
+             }
+        } else {
+            setMilestones(milestonesRes.data as ChallengeMilestone[]);
+        }
+        
+        if (phasesRes.error) {
+             // Suppress missing table logs
+             if (phasesRes.error.code !== 'PGRST205' && phasesRes.error.code !== '42P01') {
+                console.warn("Phases table fetch error:", phasesRes.error.message);
+             }
+        } else {
+            setPhases(phasesRes.data as ChallengePhase[]);
+        }
+
         setLoading(false);
     };
 
-    fetchPosts();
+    fetchData();
   }, []);
 
   const handleLogout = async () => {
@@ -40,7 +73,6 @@ const AdminDashboardPage: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
-        // Here you might also want to delete the associated image from storage
         const { error } = await supabase.from('posts').delete().eq('id', id);
         if (error) {
             alert('Error deleting post: ' + error.message);
@@ -48,6 +80,32 @@ const AdminDashboardPage: React.FC = () => {
             setPosts(posts.filter(p => p.id !== id));
         }
     }
+  };
+
+  const handleToggleMilestone = async (id: number, currentStatus: boolean) => {
+      const { error } = await supabase
+        .from('challenge_milestones')
+        .update({ is_completed: !currentStatus })
+        .eq('id', id);
+      
+      if (error) {
+          alert('Error updating milestone: ' + error.message);
+      } else {
+          setMilestones(milestones.map(m => m.id === id ? { ...m, is_completed: !currentStatus } : m));
+      }
+  };
+  
+  const handleTogglePhase = async (id: number, currentStatus: boolean) => {
+      const { error } = await supabase
+        .from('challenge_phases')
+        .update({ is_completed: !currentStatus })
+        .eq('id', id);
+      
+      if (error) {
+          alert('Error updating phase: ' + error.message);
+      } else {
+          setPhases(phases.map(p => p.id === id ? { ...p, is_completed: !currentStatus } : p));
+      }
   };
 
   return (
@@ -82,7 +140,65 @@ const AdminDashboardPage: React.FC = () => {
                   Add New Post
                 </Link>
             </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+                {/* Challenge Milestones Section */}
+                <div>
+                    <h2 className="text-xl font-bold text-dark mb-4">Milestones (Home Page)</h2>
+                    <div className="bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200 p-6 h-full">
+                        {loading ? <Skeleton className="h-24 w-full" /> : (
+                            <div className="space-y-3">
+                                {milestones.map((milestone) => (
+                                    <div key={milestone.id} className="flex items-center justify-between p-3 bg-light rounded-lg border border-gray-200">
+                                        <span className={`font-medium text-sm ${milestone.is_completed ? 'text-green-700' : 'text-secondary'}`}>
+                                            {milestone.display_order}. {milestone.title}
+                                        </span>
+                                        <button 
+                                            onClick={() => handleToggleMilestone(milestone.id, milestone.is_completed)}
+                                            className={`p-1.5 rounded-full transition-colors ${milestone.is_completed ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}
+                                            title={milestone.is_completed ? "Mark as incomplete" : "Mark as complete"}
+                                        >
+                                            {milestone.is_completed ? <CheckCircle size={18} /> : <Circle size={18} />}
+                                        </button>
+                                    </div>
+                                ))}
+                                {milestones.length === 0 && <p className="text-muted">No milestones found.</p>}
+                            </div>
+                        )}
+                    </div>
+                </div>
 
+                {/* Challenge Phases Section */}
+                <div>
+                    <h2 className="text-xl font-bold text-dark mb-4">Process Sections (Challenge Page)</h2>
+                    <div className="bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200 p-6 h-full">
+                         {loading ? <Skeleton className="h-24 w-full" /> : (
+                            <div className="space-y-3">
+                                {phases.map((phase) => (
+                                    <div key={phase.id} className="flex items-center justify-between p-3 bg-light rounded-lg border border-gray-200">
+                                        <div className="flex items-center gap-3">
+                                            <Layers className="h-4 w-4 text-muted" />
+                                            <span className={`font-medium text-sm ${phase.is_completed ? 'text-green-700' : 'text-secondary'}`}>
+                                                {phase.title}
+                                            </span>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleTogglePhase(phase.id, phase.is_completed)}
+                                            className={`p-1.5 rounded-full transition-colors ${phase.is_completed ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-gray-200 text-gray-400 hover:bg-gray-300'}`}
+                                            title={phase.is_completed ? "Mark as incomplete" : "Mark as complete"}
+                                        >
+                                            {phase.is_completed ? <CheckCircle size={18} /> : <Circle size={18} />}
+                                        </button>
+                                    </div>
+                                ))}
+                                {phases.length === 0 && <p className="text-muted">No phases found.</p>}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <h2 className="text-xl font-bold text-dark mb-4">Blog Posts</h2>
             <div className="bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200">
               {error && <p className="p-6 text-red-500 text-center">{error}</p>}
               
@@ -136,8 +252,8 @@ const AdminDashboardPage: React.FC = () => {
                     ) : (
                         posts.map((post) => (
                         <tr key={post.id}>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-dark">{post.title}</div>
+                            <td className="px-6 py-4 text-sm font-medium text-dark whitespace-normal break-words max-w-xs sm:max-w-md">
+                                {post.title}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-muted">{post.date}</div>

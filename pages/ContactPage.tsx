@@ -1,20 +1,49 @@
 
 import React, { useState } from 'react';
-import { Linkedin, Twitter, PenSquare, Calendar, ArrowRight, MessageSquare, ClipboardList, Copy, Check, Send, Loader, AlertCircle } from 'lucide-react';
+import { Linkedin, Calendar, ArrowRight, Mail, Copy, Check, Send, Loader, AlertCircle, Clock, MapPin, ChevronDown, Globe } from 'lucide-react';
 import useIntersectionObserver from '../hooks/useIntersectionObserver';
 import { supabase } from '../lib/supabaseClient';
 
+const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
+const FAQItem = ({ question, answer }: { question: string, answer: string }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    return (
+        <div className="border-b border-gray-100 last:border-0">
+            <button 
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full py-6 flex items-center justify-between text-left focus:outline-none group"
+            >
+                <span className={`text-lg font-medium transition-colors duration-300 ${isOpen ? 'text-primary' : 'text-dark group-hover:text-primary'}`}>
+                    {question}
+                </span>
+                <span className={`ml-6 flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full border transition-all duration-300 ${isOpen ? 'bg-primary border-primary text-white rotate-180' : 'bg-white border-gray-200 text-muted group-hover:border-primary group-hover:text-primary'}`}>
+                    <ChevronDown className="h-4 w-4" />
+                </span>
+            </button>
+            <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? 'max-h-48 opacity-100 pb-6' : 'max-h-0 opacity-0'}`}>
+                <p className="text-secondary leading-relaxed pr-8">{answer}</p>
+            </div>
+        </div>
+    )
+}
+
 const ContactPage: React.FC = () => {
-  const [headerRef, isHeaderVisible] = useIntersectionObserver({ threshold: 0.3 });
-  const [primaryCtaRef, isPrimaryCtaVisible] = useIntersectionObserver({ threshold: 0.3 });
-  const [contactHubRef, isContactHubVisible] = useIntersectionObserver({ threshold: 0.1 });
+  const [formRef, isFormVisible] = useIntersectionObserver({ threshold: 0.1 });
+  const [contentRef, isContentVisible] = useIntersectionObserver({ threshold: 0.1 });
 
   const [copied, setCopied] = useState(false);
   const emailAddress = 'hello@alexdoe.com';
   
   const [submitting, setSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [activeSubject, setActiveSubject] = useState('SEO Audit');
 
+  const subjects = ['SEO Audit', 'Content Strategy', 'Full Partnership', 'Speaking/Podcast', 'Other'];
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -26,10 +55,11 @@ const ContactPage: React.FC = () => {
     const name = formData.get('name') as string;
     const email = formData.get('email') as string;
     const message = formData.get('message') as string;
+    const fullMessage = `[Subject: ${activeSubject}]\n\n${message}`;
 
     const { error } = await supabase
       .from('contact_messages')
-      .insert([{ name, email, message, is_read: false }]);
+      .insert([{ name, email, message: fullMessage, is_read: false }]);
     
     setSubmitting(false);
 
@@ -49,127 +79,244 @@ const ContactPage: React.FC = () => {
     });
   };
 
-  const socialLinks = [
-    { name: 'Twitter', icon: Twitter, href: '#' },
-    { name: 'LinkedIn', icon: Linkedin, href: '#' },
-    { name: 'Medium', icon: PenSquare, href: '#' },
-  ];
-
   return (
-    <div className="bg-light py-24 fade-in">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div ref={headerRef} className={`text-center mb-20 animate-on-scroll ${isHeaderVisible ? 'is-visible' : ''}`}>
-          <h1 className="text-4xl font-extrabold text-dark sm:text-5xl">Let's Connect</h1>
-          <p className="mt-4 text-xl text-muted max-w-2xl mx-auto">
-            Ready to start a project or just want to talk about SEO? Here's how to reach me.
-          </p>
-        </div>
-
-        {/* Primary CTA: Discovery Call */}
-        <div ref={primaryCtaRef} className={`mb-24 animate-on-scroll ${isPrimaryCtaVisible ? 'is-visible' : ''}`}>
-          <div className="bg-gradient-to-br from-white to-light p-8 sm:p-12 rounded-3xl shadow-2xl shadow-primary/10 border-2 border-primary transition-all duration-300 hover:shadow-primary/20 hover:-translate-y-2">
-            <div className="flex flex-col md:flex-row items-center gap-8">
-              <div className="flex-shrink-0 bg-primary/10 p-5 rounded-full border-4 border-white">
-                <Calendar className="h-12 w-12 text-primary" />
+    <div className="bg-white min-h-screen fade-in">
+      {/* Elegant Header Section */}
+      <div className="bg-light relative overflow-hidden border-b border-gray-100">
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-gray-100 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl opacity-60"></div>
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-primary/5 to-transparent rounded-full translate-y-1/3 -translate-x-1/3 blur-3xl"></div>
+          
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20 relative z-10">
+              <div className="max-w-3xl">
+                  <span className="inline-block py-1 px-3 rounded-full bg-white border border-gray-200 text-primary text-xs font-bold uppercase tracking-wider mb-6 shadow-sm">
+                    Contact
+                  </span>
+                  <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-dark mb-6 leading-tight">
+                    Let's Start a <br className="hidden md:block" /> Conversation.
+                  </h1>
+                  <p className="text-xl text-secondary max-w-xl leading-relaxed">
+                      Whether you have a specific goal in mind or just want to explore what's possible, I'm ready to listen.
+                  </p>
               </div>
-              <div className="flex-grow text-center md:text-left">
-                <h2 className="text-3xl font-bold text-dark">The Best Way to Start?</h2>
-                <p className="mt-2 text-muted max-w-2xl">
-                    A free 15-minute discovery call is the fastest way to see if we're a good fit for your project goals.
-                </p>
-              </div>
-              <div className="flex-shrink-0">
-                  <a href="#" className="group inline-flex items-center justify-center bg-primary text-white font-bold py-3 px-8 rounded-full text-lg transition-all duration-300 shadow-lg hover:brightness-95 transform hover:scale-105">
-                    Schedule a Call
-                    <ArrowRight className="ml-2 transition-transform duration-300 group-hover:translate-x-1" />
-                  </a>
-              </div>
-            </div>
           </div>
-        </div>
+      </div>
 
-        {/* Contact Hub */}
-        <div ref={contactHubRef} className={`grid grid-cols-1 lg:grid-cols-3 gap-8 animate-on-scroll ${isContactHubVisible ? 'is-visible' : ''}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 relative z-20 pb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
             
-            {/* Left Side: Inquiry Form */}
-            <div className={`lg:col-span-2 bg-white rounded-2xl shadow-xl border border-gray-200 p-8 sm:p-10 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 animate-on-scroll flex flex-col h-full ${isContactHubVisible ? 'is-visible' : ''}`} style={{ transitionDelay: '100ms' }}>
-                <div className="flex items-start gap-4 mb-8">
-                    <div className="flex-shrink-0 bg-primary/10 p-3 rounded-lg">
-                        <MessageSquare className="h-6 w-6 text-primary" />
+            {/* Left Sidebar: Contact Info */}
+            <div className="lg:col-span-4 space-y-6" ref={contentRef}>
+                <div className={`space-y-6 animate-on-scroll ${isContentVisible ? 'is-visible' : ''}`}>
+                    {/* Primary Contact Card */}
+                    <div className="bg-[#050505] text-white rounded-3xl p-8 shadow-2xl shadow-black/10 relative overflow-hidden group">
+                        {/* Animated Background Icon */}
+                        <div className="absolute -bottom-6 -right-6 p-4 text-white opacity-[0.03] transform group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700 ease-out">
+                            <Mail className="w-48 h-48" />
+                        </div>
+                        
+                        <div className="relative z-10">
+                            <div className="flex items-center justify-between mb-8">
+                                <h2 className="text-2xl font-bold">Contact Info</h2>
+                                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/5 backdrop-blur-sm">
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                    </span>
+                                    <span className="text-xs font-medium text-white/90">Online</span>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-8">
+                                <div className="group/item">
+                                    <p className="text-sm text-gray-400 mb-1 flex items-center gap-2">
+                                        <Mail className="h-4 w-4" /> Email Me
+                                    </p>
+                                    <div className="flex items-center gap-3">
+                                        <a href={`mailto:${emailAddress}`} className="text-lg font-bold hover:text-white/80 transition-colors border-b border-transparent hover:border-white/50 pb-0.5">{emailAddress}</a>
+                                        <button onClick={handleCopy} className="p-2 hover:bg-white/10 rounded-lg transition-colors group-hover/item:bg-white/5" title="Copy Email">
+                                            {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <p className="text-sm text-gray-400 mb-1 flex items-center gap-2">
+                                        <Globe className="h-4 w-4" /> Based In
+                                    </p>
+                                    <p className="text-lg font-bold">Chennai, India</p>
+                                    <p className="text-sm text-gray-500 mt-1">Available for global remote work</p>
+                                </div>
+
+                                <div>
+                                    <p className="text-sm text-gray-400 mb-1 flex items-center gap-2">
+                                        <Clock className="h-4 w-4" /> Response Time
+                                    </p>
+                                    <p className="text-lg font-bold">Usually within 24 hours</p>
+                                </div>
+                            </div>
+
+                            <div className="mt-10 pt-8 border-t border-white/10 flex gap-4">
+                                <a href="#" className="bg-white/5 hover:bg-white/20 p-3 rounded-xl transition-all duration-300 text-white/70 hover:text-white">
+                                    <Linkedin className="h-5 w-5" />
+                                </a>
+                                <a href="#" className="bg-white/5 hover:bg-white/20 p-3 rounded-xl transition-all duration-300 text-white/70 hover:text-white">
+                                    <XIcon className="h-5 w-5" />
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="text-2xl font-bold text-dark">Send a Detailed Inquiry</h3>
-                        <p className="text-sm text-muted mt-1">Best for project proposals or in-depth questions. Expect a reply within one business day.</p>
+
+                    {/* Secondary Card: Book a Call */}
+                    <div className="bg-white rounded-3xl p-8 shadow-lg shadow-gray-100 border border-gray-100 hover:border-primary/20 transition-colors duration-300">
+                         <div className="flex items-start gap-4 mb-4">
+                             <div className="bg-primary/5 p-3 rounded-xl">
+                                 <Calendar className="h-6 w-6 text-primary" />
+                             </div>
+                             <div>
+                                <h3 className="text-lg font-bold text-dark">Skip the inbox?</h3>
+                                <p className="text-muted text-sm mt-1">Book a 15-min discovery call directly.</p>
+                             </div>
+                         </div>
+                         <a href="#" className="mt-4 w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-100 text-dark font-bold py-3 px-4 rounded-xl hover:border-primary hover:text-primary transition-all duration-300">
+                             Book Discovery Call <ArrowRight className="h-4 w-4" />
+                         </a>
                     </div>
                 </div>
-                <form onSubmit={handleSubmit} className="flex flex-col flex-grow">
-                    <div className="flex-grow space-y-6">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                            <div>
-                                <label htmlFor="name" className="sr-only">Full Name</label>
-                                <input type="text" name="name" id="name" required disabled={submitting} className="block w-full rounded-lg border-2 border-transparent bg-light px-4 py-3 text-secondary placeholder-muted transition-colors duration-300 focus:border-primary focus:bg-white focus:outline-none" placeholder="Full Name" />
-                            </div>
-                            <div>
-                                <label htmlFor="email" className="sr-only">Email Address</label>
-                                <input type="email" name="email" id="email" required disabled={submitting} className="block w-full rounded-lg border-2 border-transparent bg-light px-4 py-3 text-secondary placeholder-muted transition-colors duration-300 focus:border-primary focus:bg-white focus:outline-none" placeholder="Email Address" />
-                            </div>
-                        </div>
-                        <div>
-                            <label htmlFor="message" className="sr-only">Your Message</label>
-                            <textarea id="message" name="message" rows={5} required disabled={submitting} className="block w-full rounded-lg border-2 border-transparent bg-light px-4 py-3 text-secondary placeholder-muted transition-colors duration-300 focus:border-primary focus:bg-white focus:outline-none" placeholder="Tell me about your project..."></textarea>
-                        </div>
-                    </div>
-                     <div className="mt-6 flex items-center justify-between">
-                        <button type="submit" disabled={submitting} className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 border border-transparent rounded-lg shadow-sm text-base font-bold text-white bg-secondary hover:bg-dark transition-all duration-300 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-60">
-                            {submitting ? <Loader className="animate-spin h-5 w-5" /> : <Send className="h-5 w-5" />}
-                            {submitting ? 'Sending...' : 'Send Inquiry'}
-                        </button>
-                         {submitStatus === 'success' && <div className="text-green-600 font-semibold flex items-center gap-2 fade-in"><Check size={20} />Message Sent!</div>}
-                        {submitStatus === 'error' && <div className="text-red-600 font-semibold flex items-center gap-2 fade-in"><AlertCircle size={20} />An error occurred.</div>}
-                    </div>
-                </form>
             </div>
 
-             {/* Right Side: Quick Connect */}
-             <div className={`bg-white rounded-2xl shadow-xl border border-gray-200 p-8 sm:p-10 flex flex-col h-full transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 animate-on-scroll ${isContactHubVisible ? 'is-visible' : ''}`} style={{ transitionDelay: '200ms' }}>
-                <div> {/* Top content wrapper */}
-                    <div className="flex items-start gap-4 mb-8">
-                        <div className="flex-shrink-0 bg-primary/10 p-3 rounded-lg">
-                            <ClipboardList className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                            <h3 className="text-2xl font-bold text-dark">Other Ways to Connect</h3>
-                            <p className="text-sm text-muted mt-1">For quick questions or to follow my work.</p>
-                        </div>
-                    </div>
-                    
-                    {/* Direct Email */}
-                    <div>
-                        <h4 className="font-semibold text-dark mb-3">Direct Email</h4>
-                        <div className="flex items-center justify-between gap-2 p-3 rounded-lg bg-light border border-gray-200">
-                            <a href={`mailto:${emailAddress}`} className="text-sm text-primary font-medium truncate hover:underline">{emailAddress}</a>
-                            <button onClick={handleCopy} className={`flex-shrink-0 p-2 rounded-md transition-colors ${copied ? 'bg-green-100 text-green-700' : 'bg-gray-200 hover:bg-gray-300 text-muted'}`}>
-                                <span className="sr-only">Copy email</span>
-                                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {/* Right Content: The Form */}
+            <div className="lg:col-span-8">
+                <div ref={formRef} className={`bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 p-8 md:p-12 h-full animate-on-scroll ${isFormVisible ? 'is-visible' : ''}`}>
+                    {submitStatus === 'success' ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center py-12 fade-in">
+                            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-6">
+                                <Check className="h-10 w-10 text-green-500" />
+                            </div>
+                            <h3 className="text-3xl font-bold text-dark mb-4">Message Sent!</h3>
+                            <p className="text-secondary max-w-md mx-auto mb-8 text-lg">
+                                Thanks for reaching out. I've received your message and will get back to you shortly.
+                            </p>
+                            <button onClick={() => setSubmitStatus('idle')} className="text-primary font-bold hover:underline underline-offset-4">
+                                Send another message
                             </button>
                         </div>
-                    </div>
-                </div>
+                    ) : (
+                        <form onSubmit={handleSubmit} className="space-y-8">
+                             <div className="mb-8">
+                                <h2 className="text-2xl font-bold text-dark mb-2">Send a Message</h2>
+                                <p className="text-muted">Tell me a bit about your goals, and I'll get back to you with some initial thoughts.</p>
+                            </div>
 
-                {/* Social Media */}
-                <div className="mt-auto pt-8">
-                     <h4 className="font-semibold text-dark mb-3 text-center">Follow the journey</h4>
-                     <div className="flex items-center justify-center gap-6">
-                        {socialLinks.map(social => (
-                            <a key={social.name} href={social.href} title={social.name} className="text-muted hover:text-primary transition-colors">
-                                <span className="sr-only">{social.name}</span>
-                                <social.icon className="h-7 w-7" />
-                            </a>
-                        ))}
-                    </div>
+                            {/* Subject Tags */}
+                            <div>
+                                <label className="block text-xs font-bold text-muted uppercase tracking-widest mb-4">I'm interested in...</label>
+                                <div className="flex flex-wrap gap-3">
+                                    {subjects.map(subject => (
+                                        <button
+                                            key={subject}
+                                            type="button"
+                                            onClick={() => setActiveSubject(subject)}
+                                            className={`px-5 py-2.5 rounded-full text-sm font-semibold border transition-all duration-300 ${
+                                                activeSubject === subject 
+                                                ? 'bg-dark text-white border-dark shadow-lg shadow-black/10 transform scale-105' 
+                                                : 'bg-white text-secondary border-gray-200 hover:border-primary hover:text-primary'
+                                            }`}
+                                        >
+                                            {subject}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label htmlFor="name" className="block text-sm font-semibold text-dark">Your Name</label>
+                                    <input 
+                                        type="text" 
+                                        id="name" 
+                                        name="name" 
+                                        required
+                                        disabled={submitting}
+                                        className="w-full px-4 py-3.5 rounded-xl bg-gray-50 border border-gray-200 text-dark placeholder-gray-400 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none"
+                                        placeholder="John Doe"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label htmlFor="email" className="block text-sm font-semibold text-dark">Email Address</label>
+                                    <input 
+                                        type="email" 
+                                        id="email" 
+                                        name="email" 
+                                        required
+                                        disabled={submitting}
+                                        className="w-full px-4 py-3.5 rounded-xl bg-gray-50 border border-gray-200 text-dark placeholder-gray-400 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none"
+                                        placeholder="john@example.com"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label htmlFor="message" className="block text-sm font-semibold text-dark">Your Message</label>
+                                <textarea 
+                                    id="message" 
+                                    name="message" 
+                                    rows={6}
+                                    required
+                                    disabled={submitting}
+                                    className="w-full px-4 py-3.5 rounded-xl bg-gray-50 border border-gray-200 text-dark placeholder-gray-400 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none resize-none"
+                                    placeholder="Tell me a bit about your project, timeline, and goals..."
+                                ></textarea>
+                            </div>
+
+                            <div className="flex items-center justify-between pt-4">
+                                {submitStatus === 'error' && (
+                                    <span className="text-red-600 text-sm font-semibold flex items-center gap-2 bg-red-50 px-4 py-2 rounded-lg">
+                                        <AlertCircle className="h-4 w-4" /> Failed to send. Please try again.
+                                    </span>
+                                )}
+                                {!submitStatus && <span></span>}
+                                
+                                <button 
+                                    type="submit" 
+                                    disabled={submitting}
+                                    className="inline-flex items-center justify-center gap-2 bg-primary text-white font-bold py-4 px-10 rounded-xl text-lg shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-1 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                                >
+                                    {submitting ? <Loader className="animate-spin h-5 w-5" /> : <Send className="h-5 w-5" />}
+                                    {submitting ? 'Sending...' : 'Send Message'}
+                                </button>
+                            </div>
+                        </form>
+                    )}
                 </div>
-             </div>
+            </div>
         </div>
+
+        {/* FAQ Section */}
+        <div className="mt-24 max-w-3xl mx-auto">
+            <div className="text-center mb-12">
+                <h2 className="text-3xl font-extrabold text-dark">Common Questions</h2>
+                <div className="h-1 w-20 bg-primary/20 mx-auto mt-4 rounded-full"></div>
+            </div>
+            <div className="space-y-2">
+                <FAQItem 
+                    question="Are you accepting new clients right now?" 
+                    answer="Yes, I have limited capacity for 1-2 new retainer clients this month. For one-off audits or consultations, I can usually schedule within a week."
+                />
+                <FAQItem 
+                    question="Do you offer white-label services for agencies?" 
+                    answer="Absolutely. I partner with select design and development agencies to handle their client's technical SEO and content strategy needs under their brand."
+                />
+                <FAQItem 
+                    question="What is your typical pricing structure?" 
+                    answer="I work on both a project basis (e.g., Audit, Setup) and monthly retainers for ongoing growth. Retainers typically start at $1,500/mo, while audits start at $800 depending on site size."
+                />
+                <FAQItem 
+                    question="Do you guarantee #1 rankings?" 
+                    answer="No ethical SEO professional can guarantee a specific ranking, as algorithms are outside our control. I guarantee best-practice execution, transparent data, and a strategy aimed at maximizing organic growth."
+                />
+            </div>
+        </div>
+
       </div>
     </div>
   );

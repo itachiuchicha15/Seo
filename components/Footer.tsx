@@ -1,12 +1,18 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Linkedin, Twitter, PenSquare } from 'lucide-react';
+import { Linkedin, PenSquare } from 'lucide-react';
+
+const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
 
 const Footer: React.FC = () => {
   const socialLinks = [
     { name: 'LinkedIn', icon: Linkedin, href: '#' },
-    { name: 'Twitter', icon: Twitter, href: '#' },
+    { name: 'X', icon: XIcon, href: '#' },
     { name: 'Medium', icon: PenSquare, href: '#' },
   ];
   
@@ -40,7 +46,7 @@ const Footer: React.FC = () => {
                     <ul className="mt-4 space-y-3">
                         {links.map(link => (
                             <li key={link.name}>
-                                <Link to={link.href} className="text-base hover:text-primary transition-colors">
+                                <Link to={link.href} className="text-base hover:text-white transition-colors">
                                     {link.name}
                                 </Link>
                             </li>
@@ -56,9 +62,9 @@ const Footer: React.FC = () => {
             </p>
             <div className="flex justify-center space-x-6 mt-4 sm:mt-0">
                 {socialLinks.map(social => (
-                     <a key={social.name} href={social.href} className="hover:text-primary transition-colors">
+                     <a key={social.name} href={social.href} className="hover:text-white transition-colors">
                         <span className="sr-only">{social.name}</span>
-                        <social.icon />
+                        <social.icon className="w-6 h-6" />
                     </a>
                 ))}
             </div>

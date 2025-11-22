@@ -1,37 +1,118 @@
 
-
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import useIntersectionObserver from '../hooks/useIntersectionObserver';
 import { Layers, PenTool, BarChart3, Megaphone, CheckCircle, ArrowRight } from 'lucide-react';
+import { supabase } from '../lib/supabaseClient';
+import { ChallengePhase } from '../types';
 
 const ChallengePage: React.FC = () => {
-  const processSteps = [
+  const [phases, setPhases] = useState<ChallengePhase[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Refs to calculate the height of the active line
+  const stepRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [lineHeight, setLineHeight] = useState(0);
+
+  useEffect(() => {
+      const fetchPhases = async () => {
+          const { data, error } = await supabase
+            .from('challenge_phases')
+            .select('*')
+            .order('display_order', { ascending: true });
+            
+          if (error) {
+               // Suppress missing table errors from Supabase
+              if (error.code !== 'PGRST205' && error.code !== '42P01') {
+                 console.warn('Error fetching phases:', error.message);
+              }
+          } else if (data) {
+              setPhases(data as ChallengePhase[]);
+          }
+          setLoading(false);
+      };
+      fetchPhases();
+  }, []);
+
+  // Content mapping
+  const processStepContent = [
     {
-      number: 1,
-      title: "Foundation & Setup",
+      icon: Layers,
+      defaultTitle: "Foundation & Setup",
       content: "The challenge begins with a clean slate. This involves purchasing a new domain, setting up a fast, lightweight website, and installing essential tracking tools to create a solid technical foundation.",
-      icon: Layers
     },
     {
-      number: 2,
-      title: "Content Creation & On-Page SEO",
+      icon: PenTool,
+      defaultTitle: "Content Creation & On-Page SEO",
       content: "This is the core of the strategy. I will be regularly publishing high-quality, relevant content, with each piece meticulously optimized with on-page SEO best practices (titles, metas, headers, etc.).",
-      icon: PenTool
     },
     {
-      number: 3,
-      title: "Tracking & Analysis",
+      icon: BarChart3,
+      defaultTitle: "Tracking & Analysis",
       content: "Data drives every decision. I'll constantly monitor keyword rankings, organic traffic, and user engagement metrics. This allows for agile adjustments to the strategy based on what the data reveals.",
-      icon: BarChart3
     },
     {
-      number: 4,
-      title: "Public Updates & Transparency",
+      icon: Megaphone,
+      defaultTitle: "Public Updates & Transparency",
       content: "Every significant step, success, or failure will be documented in the Challenge Log. This commitment to transparency is key to the project's goal of being an educational resource and an honest portfolio piece.",
-      icon: Megaphone
     }
   ];
+
+  // Combine DB data with static content
+  const steps = processStepContent.map((staticStep, index) => {
+      const dbPhase = phases.length > index ? phases[index] : null;
+      return {
+          ...staticStep,
+          number: index + 1,
+          title: dbPhase ? dbPhase.title : staticStep.defaultTitle,
+          isCompleted: dbPhase ? dbPhase.is_completed : false
+      };
+  });
+
+  // Calculate line height
+  useEffect(() => {
+      if (loading || steps.length === 0) return;
+
+      const calculateHeight = () => {
+        if (!containerRef.current) return;
+        
+        // Find the last completed step index
+        let lastCompletedIndex = -1;
+        for (let i = steps.length - 1; i >= 0; i--) {
+            if (steps[i].isCompleted) {
+                lastCompletedIndex = i;
+                break;
+            }
+        }
+
+        if (lastCompletedIndex >= 0 && stepRefs.current[lastCompletedIndex]) {
+            const containerTop = containerRef.current.getBoundingClientRect().top;
+            const stepEl = stepRefs.current[lastCompletedIndex];
+            if (stepEl) {
+                // Center of the step icon relative to container
+                const stepTop = stepEl.getBoundingClientRect().top;
+                const relativeTop = stepTop - containerTop;
+                // Add half the icon height (40px roughly) to reach the center
+                setLineHeight(relativeTop + 40); 
+            }
+        } else {
+            setLineHeight(0);
+        }
+      };
+
+      // Run calculation initially and on resize
+      calculateHeight();
+      window.addEventListener('resize', calculateHeight);
+      // Delay slightly to ensure layout is settled
+      const timeoutId = setTimeout(calculateHeight, 500);
+      
+      return () => {
+          window.removeEventListener('resize', calculateHeight);
+          clearTimeout(timeoutId);
+      };
+  }, [steps, loading]);
+
   
   const demonstratedSkills = [
       "Advanced keyword research and search intent analysis",
@@ -91,25 +172,59 @@ const ChallengePage: React.FC = () => {
              </p>
            </div>
            <div className="mt-20">
-             <div className="relative">
-                {/* Vertical line: centered on desktop, on the left for mobile */}
-                <div className="absolute top-0 left-8 md:left-1/2 w-0.5 h-full bg-gray-200 -translate-x-1/2" aria-hidden="true"></div>
+             <div className="relative" ref={containerRef}>
+                {/* Background Line */}
+                <div className="absolute left-8 md:left-1/2 top-0 w-0.5 h-full bg-gray-200 -translate-x-1/2" aria-hidden="true"></div>
+                
+                {/* Dynamic Progress Line (Primary Color) */}
+                <div 
+                    className="absolute left-8 md:left-1/2 top-0 w-0.5 bg-primary -translate-x-1/2 transition-all duration-1000 ease-in-out" 
+                    style={{ height: `${lineHeight}px` }}
+                    aria-hidden="true"
+                ></div>
+
                 <div className="space-y-16">
-                    {processSteps.map((step, index) => {
+                    {steps.map((step, index) => {
                         const isLeftDesktop = index % 2 === 0;
-                        const [stepRef, isStepVisible] = useIntersectionObserver({ threshold: 0.3 });
+                        const [stepInViewRef, isStepVisible] = useIntersectionObserver({ threshold: 0.3 });
+                        
                         return (
-                            <div key={step.number} ref={stepRef} className={`relative animate-on-scroll ${isStepVisible ? 'is-visible' : ''}`}>
+                            <div 
+                                key={step.number} 
+                                ref={(el) => {
+                                    // Simplified logic handled by useEffect for line height
+                                }}
+                                className={`relative animate-on-scroll ${isStepVisible ? 'is-visible' : ''}`}
+                            >
+                                <div ref={stepInViewRef} className="absolute inset-0 pointer-events-none"></div>
+                                
                                 {/* The icon on the timeline */}
-                                <div className="absolute top-8 left-8 md:left-1/2 -translate-x-1/2 z-10">
-                                    <div className="relative flex items-center justify-center w-20 h-20 rounded-full bg-white border-2 border-primary shadow-lg">
-                                        <step.icon className="h-8 w-8 text-primary z-10" />
+                                <div 
+                                    ref={el => { stepRefs.current[index] = el }}
+                                    className="absolute top-0 left-8 md:left-1/2 -translate-x-1/2 z-10"
+                                >
+                                    <div 
+                                        className={`relative flex items-center justify-center w-20 h-20 rounded-full border-4 shadow-lg transition-all duration-700 ${
+                                            step.isCompleted 
+                                            ? 'bg-primary border-primary shadow-primary/30' 
+                                            : 'bg-white border-gray-200'
+                                        }`}
+                                    >
+                                        {step.isCompleted ? (
+                                            <CheckCircle className="h-10 w-10 text-white" />
+                                        ) : (
+                                            <step.icon className={`h-8 w-8 ${step.isCompleted ? 'text-white' : 'text-primary'}`} />
+                                        )}
                                     </div>
                                 </div>
+                                
                                 {/* Content Card Wrapper */}
-                                <div className={`pl-24 md:pl-0 md:w-1/2 ${isLeftDesktop ? 'md:mr-auto md:pr-10' : 'md:ml-auto md:pl-10'}`}>
-                                    <div className={`p-6 bg-white rounded-lg border border-gray-200 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-gray-300 border-t-4 border-transparent hover:border-t-primary text-left ${isLeftDesktop ? 'md:text-right' : ''}`}>
-                                        <h3 className="text-2xl font-bold text-dark">{step.title}</h3>
+                                <div className={`pl-24 md:pl-0 md:w-1/2 pt-2 ${isLeftDesktop ? 'md:mr-auto md:pr-14' : 'md:ml-auto md:pl-14'}`}>
+                                    <div className={`p-6 bg-white rounded-lg border transition-all duration-300 hover:shadow-xl hover:-translate-y-1 text-left ${isLeftDesktop ? 'md:text-right' : ''} ${step.isCompleted ? 'border-primary hover:border-primary border-t-4 shadow-md' : 'border-gray-200 hover:border-gray-300 border-t-4 border-t-transparent hover:border-t-primary'}`}>
+                                        <h3 className={`text-2xl font-bold ${step.isCompleted ? 'text-primary' : 'text-dark'}`}>
+                                            {step.title} 
+                                            {step.isCompleted && <span className="ml-2 text-xs bg-black text-white px-2 py-1 rounded-full align-middle inline-block shadow-sm">Completed</span>}
+                                        </h3>
                                         <p className="mt-2 text-muted">{step.content}</p>
                                     </div>
                                 </div>

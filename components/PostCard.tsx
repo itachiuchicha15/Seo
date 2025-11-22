@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BlogPost } from '../types';
@@ -25,7 +26,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, style }) => {
         </Link>
         <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
             {post.tags.slice(0, 2).map(tag => (
-                <span key={tag} className="inline-block bg-dark text-primary text-xs font-semibold px-2.5 py-1 rounded-full">{tag}</span>
+                <span key={tag} className="inline-block bg-black text-[#FFFFFF] text-xs font-semibold px-2.5 py-1 rounded-full">{tag}</span>
             ))}
         </div>
       </div>
