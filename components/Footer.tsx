@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 import { Linkedin, PenSquare } from 'lucide-react';
 
 const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -31,22 +30,22 @@ const Footer: React.FC = () => {
   }
 
   return (
-    <footer className="bg-dark text-muted border-t border-secondary/20">
+    <footer className="bg-dark text-light/80 border-t border-muted/10">
       <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 text-center md:text-left">
             <div className="md:col-span-2">
-                <h3 className="text-2xl font-bold text-white">Search Me If You Can</h3>
-                <p className="mt-2 text-base max-w-sm">
+                <h3 className="text-2xl font-extrabold text-light">Search Me If You Can</h3>
+                <p className="mt-4 text-base max-w-sm mx-auto md:mx-0 leading-relaxed">
                     A real-time portfolio proving SEO skills, not just talking about them. Follow the 60-day challenge from scratch.
                 </p>
             </div>
             {Object.entries(navLinks).map(([title, links]) => (
                 <div key={title}>
-                    <h4 className="font-semibold text-sm uppercase tracking-wider text-gray-400">{title}</h4>
-                    <ul className="mt-4 space-y-3">
+                    <h4 className="font-bold text-xs uppercase tracking-[0.2em] text-muted mb-6">{title}</h4>
+                    <ul className="space-y-4">
                         {links.map(link => (
                             <li key={link.name}>
-                                <Link to={link.href} className="text-base hover:text-white transition-colors">
+                                <Link to={link.href} className="text-sm hover:text-primary transition-colors duration-200">
                                     {link.name}
                                 </Link>
                             </li>
@@ -56,15 +55,15 @@ const Footer: React.FC = () => {
             ))}
         </div>
 
-        <div className="mt-12 pt-8 border-t border-secondary/20 flex flex-col sm:flex-row justify-between items-center">
-            <p className="text-base text-center sm:text-left">
-                &copy; {new Date().getFullYear()} Eswarapandi Vinayagamoorthy. All rights reserved.
+        <div className="mt-16 pt-8 border-t border-muted/5 flex flex-col sm:flex-row justify-between items-center gap-6">
+            <p className="text-xs font-medium text-muted/60 text-center sm:text-left">
+                &copy; {new Date().getFullYear()} Eswarapandi Vinayagamoorthy. Built with precision and strategy.
             </p>
-            <div className="flex justify-center space-x-6 mt-4 sm:mt-0">
+            <div className="flex justify-center space-x-6">
                 {socialLinks.map(social => (
-                     <a key={social.name} href={social.href} className="hover:text-white transition-colors">
+                     <a key={social.name} href={social.href} className="text-light/40 hover:text-primary transition-all duration-300 transform hover:scale-110">
                         <span className="sr-only">{social.name}</span>
-                        <social.icon className="w-6 h-6" />
+                        <social.icon className="w-5 h-5" />
                     </a>
                 ))}
             </div>

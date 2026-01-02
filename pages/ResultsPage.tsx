@@ -1,54 +1,142 @@
-
-import React, { useMemo, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Trophy, MousePointer, Eye, Lightbulb, Zap, Target, ArrowRight, ArrowDown } from 'lucide-react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { Link } from "react-router-dom";
+import { Trophy, MousePointer, Eye, Lightbulb, Zap, Target, ArrowRight, ArrowDown, TrendingUp, Calendar, CheckCircle, Star, BarChart } from 'lucide-react';
 import { BlogPost } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import useIntersectionObserver from '../hooks/useIntersectionObserver';
 import Skeleton from '../components/Skeleton';
 import { getThemeColor } from '../lib/utils';
 
-const ResultMetricCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; description: string; style?: React.CSSProperties; }> = ({ icon: Icon, label, value, description, style }) => {
-    const [ref, isVisible] = useIntersectionObserver({ threshold: 0.5 });
+// --- Helper Components ---
+
+const NumberTicker: React.FC<{ value: string | number, delay?: number }> = ({ value, delay = 0 }) => {
+    const [displayValue, setDisplayValue] = useState(0);
+    const elementRef = useRef<HTMLSpanElement>(null);
+    const [isVisible, setIsVisible] = useState(false);
+
+    const stringVal = value.toString();
+    const numericValue = parseFloat(stringVal.replace(/[^0-9.]/g, ''));
+    const prefix = stringVal.match(/^[^\d]*/)?.[0] || '';
+    const suffix = stringVal.match(/[^\d]*$/)?.[0] || '';
+    const isNumber = !isNaN(numericValue);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true);
+                    observer.disconnect();
+                }
+            },
+            { threshold: 0.5 }
+        );
+        
+        if (elementRef.current) {
+            observer.observe(elementRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        if (!isVisible || !isNumber) return;
+
+        let startTimestamp: number | null = null;
+        const duration = 2000;
+
+        const step = (timestamp: number) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const easeProgress = 1 - Math.pow(1 - progress, 4);
+            setDisplayValue(Math.floor(easeProgress * numericValue));
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            } else {
+                setDisplayValue(numericValue);
+            }
+        };
+
+        const timeoutId = setTimeout(() => {
+            window.requestAnimationFrame(step);
+        }, delay);
+
+        return () => clearTimeout(timeoutId);
+    }, [isVisible, numericValue, isNumber, delay]);
+
+    if (!isNumber) return <span>{value}</span>;
+    return <span ref={elementRef}>{prefix}{displayValue}{suffix}</span>;
+};
+
+const ResultMetricCard: React.FC<{ 
+    icon: React.ElementType; 
+    label: string; 
+    value: string | number; 
+    description: string; 
+    trend?: string;
+    delay?: number;
+}> = ({ icon: Icon, label, value, description, trend, delay = 0 }) => {
+    const [ref, isVisible] = useIntersectionObserver({ threshold: 0.2 });
+    
     return (
-        <div ref={ref} className={`bg-white p-8 rounded-2xl shadow-xl border border-gray-200 text-center animate-on-scroll ${isVisible ? 'is-visible' : ''}`} style={style}>
-            <Icon className="h-12 w-12 text-primary mx-auto" />
-            <p className="mt-4 text-5xl font-extrabold text-dark font-mono">{value}</p>
-            <h3 className="mt-2 text-lg font-bold text-secondary">{label}</h3>
-            <p className="text-sm text-muted">{description}</p>
+        <div 
+            ref={ref} 
+            className={`relative bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl border border-muted/20 overflow-hidden group transition-all duration-500 hover:-translate-y-1 animate-on-scroll ${isVisible ? 'is-visible' : ''}`}
+            style={{ transitionDelay: `${delay}ms` }}
+        >
+            <div className="absolute -top-12 -right-12 w-40 h-40 bg-light rounded-full group-hover:bg-primary/5 group-hover:scale-125 transition-all duration-700 ease-out z-0"></div>
+            
+            <div className="relative z-10">
+                <div className="flex justify-between items-start mb-8">
+                    <div className="p-3.5 bg-light rounded-2xl group-hover:bg-primary group-hover:text-light transition-all duration-300 shadow-sm">
+                        <Icon className="h-6 w-6 text-primary group-hover:text-light" />
+                    </div>
+                    {trend && (
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary border border-primary/20">
+                            <TrendingUp className="w-3 h-3 mr-1.5" /> {trend}
+                        </span>
+                    )}
+                </div>
+                
+                <div className="space-y-2">
+                    <p className="text-5xl font-extrabold text-dark tracking-tight tabular-nums">
+                        <NumberTicker value={value} delay={delay + 200} />
+                    </p>
+                    <h3 className="text-sm font-bold text-muted uppercase tracking-widest">{label}</h3>
+                </div>
+                
+                <div className="mt-6 pt-6 border-t border-light">
+                    <p className="text-sm text-dark/70 font-medium leading-relaxed">{description}</p>
+                </div>
+            </div>
         </div>
     );
 };
 
 const ResultsSkeleton: React.FC = () => {
     return (
-        <div className="bg-light pb-24">
-            {/* Hero Skeleton */}
-            <div className="bg-white text-center py-24 px-4">
-                <Skeleton className="h-4 w-48 mx-auto mb-4" />
-                <Skeleton className="h-12 w-3/4 max-w-2xl mx-auto mb-6" />
+        <div className="bg-light min-h-screen pb-24">
+            <div className="bg-white text-center py-32 px-4 border-b border-light">
+                <Skeleton className="h-6 w-48 mx-auto mb-6 rounded-full" />
+                <Skeleton className="h-16 w-3/4 max-w-2xl mx-auto mb-8" />
                 <Skeleton className="h-6 w-1/2 max-w-xl mx-auto" />
             </div>
-            {/* Metrics Skeleton */}
-             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12">
+             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 relative z-10">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                      {[...Array(3)].map((_, i) => (
-                         <div key={i} className="bg-white p-8 rounded-2xl shadow-xl border border-gray-200 text-center flex flex-col items-center">
-                             <Skeleton className="h-12 w-12 rounded-full mb-4" />
-                             <Skeleton className="h-12 w-32 mb-2" />
-                             <Skeleton className="h-6 w-24 mb-2" />
-                             <Skeleton className="h-4 w-40" />
+                         <div key={i} className="bg-white p-8 rounded-3xl shadow-xl border border-light h-64 flex flex-col justify-between">
+                             <div className="flex justify-between">
+                                 <Skeleton className="h-12 w-12 rounded-2xl" />
+                                 <Skeleton className="h-6 w-16 rounded-full" />
+                             </div>
+                             <div>
+                                <Skeleton className="h-12 w-32 mb-2" />
+                                <Skeleton className="h-4 w-24" />
+                             </div>
+                             <Skeleton className="h-4 w-full" />
                          </div>
                      ))}
                 </div>
             </div>
-             {/* Chart Skeleton */}
-             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-24">
-                 <Skeleton className="h-8 w-64 mx-auto mb-16" />
-                 <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
-                    <Skeleton className="h-80 w-full rounded-lg" />
-                 </div>
-             </div>
         </div>
     );
 };
@@ -63,15 +151,22 @@ const ResultsPage: React.FC = () => {
     const [posts, setPosts] = useState<BlogPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [tooltip, setTooltip] = useState<TooltipData | null>(null);
+    const [colors, setColors] = useState({ primary: '#606C38', secondary: '#BC6C25', muted: '#DDA15E', chart: '#BC6C25', dark: '#283618', light: '#FEFAE0' });
 
-    // Dynamic chart colors
-    const [colors, setColors] = useState({ primary: '#000000', muted: '#9CA3AF', chart: '#F59E0B' });
+    const [headerRef, isHeaderVisible] = useIntersectionObserver();
+    const [journeyRef, isJourneyVisible] = useIntersectionObserver();
+    const [chartRef, isChartVisible] = useIntersectionObserver();
+    const [learningsRef, isLearningsVisible] = useIntersectionObserver();
+    const [ctaRef, isCtaVisible] = useIntersectionObserver();
 
     useEffect(() => {
         setColors({
-            primary: getThemeColor('primary', '#000000'),
-            muted: getThemeColor('muted', '#9CA3AF'),
-            chart: getThemeColor('chart', '#F59E0B')
+            primary: getThemeColor('primary', '#606C38'),
+            secondary: getThemeColor('secondary', '#BC6C25'), 
+            muted: getThemeColor('muted', '#DDA15E'),
+            chart: getThemeColor('chart', '#BC6C25'),
+            dark: getThemeColor('dark', '#283618'),
+            light: getThemeColor('light', '#FEFAE0')
         });
     }, []);
 
@@ -84,8 +179,6 @@ const ResultsPage: React.FC = () => {
             
             if (!error && data) {
                 setPosts(data as BlogPost[]);
-            } else {
-                console.error("Failed to fetch posts for results page:", error);
             }
             setLoading(false);
         };
@@ -96,34 +189,26 @@ const ResultsPage: React.FC = () => {
     const firstPost = allPostsChronological[0];
     const latestPost = allPostsChronological[allPostsChronological.length - 1];
 
-    const getGrowth = useMemo(() => (start: number, end: number) => {
-        if (start === 0) return end > 0 ? `+${end}` : '0';
+    const getGrowthDisplay = (start: number, end: number) => {
+        if (start === 0) return `+${end} total`;
         const percentage = ((end - start) / start) * 100;
         return `${percentage > 0 ? '+' : ''}${percentage.toFixed(0)}%`;
-    }, []);
+    };
 
     const chartData = useMemo(() => {
         if (allPostsChronological.length < 2) return null;
-
-        const SVG_WIDTH = 900;
-        const SVG_HEIGHT = 400;
-        const PADDING = { top: 40, right: 60, bottom: 50, left: 60 };
-
-        const maxImpressions = Math.max(...allPostsChronological.map(p => p.metrics.impressions), 1);
-        const maxRank = 100; // Fixed max rank for better scale consistency
+        const SVG_WIDTH = 1000;
+        const SVG_HEIGHT = 450;
+        const PADDING = { top: 50, right: 80, bottom: 60, left: 80 };
+        const maxImpressions = Math.max(...allPostsChronological.map(p => p.metrics.impressions), 10);
+        const maxRank = 100;
 
         const points = allPostsChronological.map((post, i) => {
             const x = PADDING.left + (i / (allPostsChronological.length - 1)) * (SVG_WIDTH - PADDING.left - PADDING.right);
             const yImpressions = PADDING.top + (SVG_HEIGHT - PADDING.top - PADDING.bottom) * (1 - post.metrics.impressions / maxImpressions);
-            
-            let yRank;
-            if (typeof post.metrics.rank === 'number') {
-                // Invert rank so lower (better) is higher on the chart
-                yRank = PADDING.top + (SVG_HEIGHT - PADDING.top - PADDING.bottom) * ((maxRank - post.metrics.rank) / maxRank);
-            } else {
-                yRank = SVG_HEIGHT - PADDING.bottom; // "Not Indexed" at the bottom
-            }
-
+            let yRank = (typeof post.metrics.rank === 'number') 
+                ? PADDING.top + (SVG_HEIGHT - PADDING.top - PADDING.bottom) * ((maxRank - post.metrics.rank) / maxRank)
+                : SVG_HEIGHT - PADDING.bottom;
             return { post, x, yImpressions, yRank };
         });
         
@@ -131,20 +216,13 @@ const ResultsPage: React.FC = () => {
         const rankLinePoints = points.filter(p => typeof p.post.metrics.rank === 'number').map(p => `${p.x},${p.yRank}`).join(' ');
         
         const annotations = [];
-        const firstImpressionPost = allPostsChronological.find(p => p.metrics.impressions > 0);
-        if (firstImpressionPost) {
-            const point = points.find(p => p.post.id === firstImpressionPost.id);
-            if(point) annotations.push({ x: point.x, y: point.yImpressions, label: 'First Impressions!' });
-        }
-        const firstClickPost = allPostsChronological.find(p => p.metrics.clicks > 0);
-        if (firstClickPost) {
-            const point = points.find(p => p.post.id === firstClickPost.id);
-            if(point) annotations.push({ x: point.x, y: point.yImpressions, label: 'First Click!' });
+        const top10 = allPostsChronological.find(p => typeof p.metrics.rank === 'number' && p.metrics.rank <= 10);
+        if (top10) {
+             const point = points.find(p => p.post.id === top10.id);
+             if(point) annotations.push({ x: point.x, y: point.yRank, label: 'Cracked Top 10!', type: 'rank' });
         }
 
-        return {
-            svgWidth: SVG_WIDTH, svgHeight: SVG_HEIGHT, padding: PADDING, points, maxImpressions, maxRank, impressionLinePoints, rankLinePoints, annotations
-        };
+        return { svgWidth: SVG_WIDTH, svgHeight: SVG_HEIGHT, padding: PADDING, points, maxImpressions, maxRank, impressionLinePoints, rankLinePoints, annotations };
     }, [allPostsChronological]);
 
     const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
@@ -153,10 +231,8 @@ const ResultsPage: React.FC = () => {
         const pt = svg.createSVGPoint();
         pt.x = e.clientX;
         const cursorPoint = pt.matrixTransform(svg.getScreenCTM()?.inverse());
-
         let closestPoint = null;
         let minDistance = Infinity;
-
         chartData.points.forEach(p => {
             const distance = Math.abs(p.x - cursorPoint.x);
             if (distance < minDistance) {
@@ -164,255 +240,154 @@ const ResultsPage: React.FC = () => {
                 closestPoint = p;
             }
         });
-
-        if (closestPoint && minDistance < 25) {
-            setTooltip({
-                x: closestPoint.x,
-                y: Math.min(closestPoint.yImpressions, closestPoint.yRank),
-                post: closestPoint.post,
-            });
+        if (closestPoint && minDistance < 50) {
+            setTooltip({ x: closestPoint.x, y: Math.min(closestPoint.yImpressions, closestPoint.yRank), post: closestPoint.post });
         } else {
             setTooltip(null);
         }
     };
     
     const keyLearnings = [
-        {
-            icon: Lightbulb,
-            title: "Content is Still King",
-            description: "High-quality, long-form content consistently drove the biggest jumps in impressions and rankings. Value and relevance are non-negotiable."
-        },
-        {
-            icon: Zap,
-            title: "Technical SEO Matters from Day 1",
-            description: "A fast site, clean structure, and proper indexing setup created the foundation that allowed good content to be discovered quickly."
-        },
-        {
-            icon: Target,
-            title: "Patience and Consistency Win",
-            description: "SEO is a marathon, not a sprint. The most significant gains came after weeks of consistent effort, not from a single 'magic bullet' tactic."
-        },
-    ]
+        { icon: Lightbulb, title: "Content Velocity Wins", description: "Publishing frequency signaled organic relevance. Large rank jumps correlated directly with content clusters being completed." },
+        { icon: Zap, title: "Technical Foundation First", description: "Clean indexing and speed meant new content was picked up within hours. You can't rank what Google can't crawl efficiently." },
+        { icon: Target, title: "Intent Over Keywords", description: "Ranking #1 came from answering searcher intent better than incumbents, not just stuffing keywords." },
+    ];
 
-    const [headerRef, isHeaderVisible] = useIntersectionObserver();
-    const [journeyRef, isJourneyVisible] = useIntersectionObserver();
-    const [chartRef, isChartVisible] = useIntersectionObserver();
-    const [learningsRef, isLearningsVisible] = useIntersectionObserver();
-    const [ctaRef, isCtaVisible] = useIntersectionObserver();
+    if (loading) return <ResultsSkeleton />;
+    if (!latestPost) return <div className="py-40 text-center">Not enough data to display results.</div>
 
-    if (loading) {
-        return <ResultsSkeleton />;
-    }
-    
-    if (!latestPost || !firstPost) {
-        return <div className="py-40 text-center">Not enough data to display results.</div>
-    }
-
+    const CARD_CLASSES = "w-full max-w-[280px] h-[400px] relative rounded-[2rem] p-6 flex flex-col items-center justify-between transition-all duration-500 shadow-xl border";
 
     return (
-    <div className="bg-light pb-24">
-      {/* Hero Section */}
-      <section ref={headerRef} className={`bg-white text-center py-24 px-4 sm:px-6 lg:px-8 animate-on-scroll ${isHeaderVisible ? 'is-visible' : ''}`}>
-        <p className="text-lg font-semibold text-primary uppercase tracking-wider">The 60-Day SEO Challenge</p>
-        <h1 className="mt-4 text-4xl sm:text-6xl font-extrabold tracking-tight text-dark">
-          Challenge Complete: The Final Results
-        </h1>
-        <p className="mt-6 text-xl max-w-3xl mx-auto text-secondary">
-          From a brand new domain to a ranked keyword in 60 days. Here's the full data-driven breakdown of the journey.
-        </p>
+    <div className="bg-light min-h-screen font-sans text-dark">
+      <section className="relative bg-white border-b border-muted/10 overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none">
+             <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-gradient-to-br from-primary/5 to-transparent rounded-full blur-3xl opacity-70"></div>
+          </div>
+          <div ref={headerRef} className={`relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-40 text-center animate-on-scroll ${isHeaderVisible ? 'is-visible' : ''}`}>
+             <div className="inline-flex items-center gap-2 bg-primary text-light px-5 py-2 rounded-full text-sm font-bold uppercase tracking-wide mb-8 shadow-xl shadow-primary/20">
+                 <CheckCircle className="w-4 h-4 text-light" /> Mission Accomplished
+             </div>
+             <h1 className="text-5xl md:text-7xl font-extrabold text-dark tracking-tight mb-6 leading-tight">
+                 Ranked in <span className="text-secondary">60 Days</span>
+             </h1>
+             <p className="mt-6 text-xl md:text-2xl text-dark/70 max-w-3xl mx-auto leading-relaxed">
+                 A transparent SEO experiment starting from absolute zero.
+             </p>
+          </div>
       </section>
       
-      {/* Trophy Case Metrics */}
-      <section className="py-24 bg-light -mt-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-24 relative z-20">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+                <ResultMetricCard icon={Trophy} label="Final Rank" value={`#${latestPost.metrics.rank}`} description="Target Keyword Position" trend="Target Achieved" delay={100} />
+                <ResultMetricCard icon={MousePointer} label="Total Clicks" value={latestPost.metrics.clicks} description="Organic Search Traffic" trend={`${getGrowthDisplay(firstPost.metrics.clicks, latestPost.metrics.clicks)} Growth`} delay={300} />
+                <ResultMetricCard icon={Eye} label="Impressions" value={latestPost.metrics.impressions} description="Search Visibility" trend={`${getGrowthDisplay(firstPost.metrics.impressions, latestPost.metrics.impressions)} Growth`} delay={500} />
+          </div>
+      </div>
+      
+      <section ref={journeyRef} className="py-32 bg-light">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <ResultMetricCard 
-                    icon={Trophy} 
-                    label="Final SERP Rank"
-                    value={`#${latestPost.metrics.rank}`}
-                    description="For the target keyword"
-                    style={{ transitionDelay: '200ms' }}
-                />
-                 <ResultMetricCard 
-                    icon={MousePointer} 
-                    label="Total Clicks"
-                    value={latestPost.metrics.clicks}
-                    description={`${getGrowth(firstPost.metrics.clicks, latestPost.metrics.clicks)} growth over 60 days`}
-                    style={{ transitionDelay: '350ms' }}
-                />
-                 <ResultMetricCard 
-                    icon={Eye} 
-                    label="Total Impressions"
-                    value={latestPost.metrics.impressions}
-                    description={`${getGrowth(firstPost.metrics.impressions, latestPost.metrics.impressions)} growth over 60 days`}
-                    style={{ transitionDelay: '500ms' }}
-                />
+            <div className={`text-center mb-20 animate-on-scroll ${isJourneyVisible ? 'is-visible' : ''}`}>
+                <h2 className="text-3xl md:text-4xl font-extrabold text-dark">The Transformation</h2>
+                <p className="mt-4 text-lg text-muted">A leap from obscurity to authority.</p>
             </div>
-        </div>
-      </section>
-      
-      {/* The Journey: Before & After */}
-      <section ref={journeyRef} className="py-24 bg-white">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className={`text-center mb-16 transition-all duration-800 ${isJourneyVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
-                <h2 className="text-3xl font-extrabold text-dark sm:text-4xl">The 60-Day Journey</h2>
-                <p className="mt-4 text-lg text-muted max-w-3xl mx-auto">
-                    A visual comparison of where the challenge started versus where it ended.
-                </p>
-            </div>
-            <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
-                {/* Day 1 Card */}
-                <div className={`flex-shrink-0 bg-light p-8 rounded-2xl shadow-md border border-gray-200 w-full max-w-xs sm:w-64 text-center transition-all duration-800 delay-200 ${isJourneyVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
-                    <p className="text-sm font-bold text-muted uppercase">Day 1</p>
-                    <p className="text-dark font-mono text-3xl font-bold mt-2">Not Indexed</p>
-                    <p className="text-muted text-sm mt-2">0 Clicks, 0 Impressions</p>
+            
+            <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12">
+                <div className={`${CARD_CLASSES} bg-white border-muted/20 ${isJourneyVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`} style={{ transitionDelay: '100ms' }}>
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white text-muted font-bold text-[10px] px-4 py-1 rounded-full border border-muted/30 uppercase tracking-widest">Day 01</div>
+                    <div className="flex-1 flex flex-col items-center justify-center w-full">
+                        <div className="w-16 h-16 bg-light rounded-full flex items-center justify-center mb-5 opacity-50"><Calendar className="w-8 h-8 text-muted" /></div>
+                        <div className="text-center mb-6 opacity-50"><p className="text-4xl font-bold text-muted/40 font-mono mb-2">--</p><p className="text-[10px] font-bold text-muted uppercase tracking-widest">Not Indexed</p></div>
+                    </div>
+                    <div className="w-full pt-6 border-t border-dashed border-muted/20 grid grid-cols-2 gap-4 opacity-60">
+                        <div className="text-center"><p className="font-bold text-lg text-muted">0</p><p className="text-[10px] uppercase text-muted font-bold tracking-wider">Clicks</p></div>
+                         <div className="text-center"><p className="font-bold text-lg text-muted">0</p><p className="text-[10px] uppercase text-muted font-bold tracking-wider">Impr.</p></div>
+                    </div>
                 </div>
 
-                {/* Vertical Connector for Mobile */}
-                <div className="md:hidden relative w-px h-20 my-4 bg-gray-200">
-                    <div 
-                        className="absolute top-0 left-0 w-px h-full bg-gradient-to-b from-primary to-primary/50 transition-transform duration-[1200ms] ease-out"
-                        style={{
-                            transformOrigin: 'top',
-                            transform: isJourneyVisible ? 'scaleY(1)' : 'scaleY(0)',
-                            transitionDelay: '500ms',
-                        }}
-                    ></div>
-                    <div
-                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 opacity-0 transition-opacity duration-600 ease-out"
-                        style={{ transitionDelay: '1500ms', opacity: isJourneyVisible ? 1 : 0 }}
-                    >
-                        <div
-                            className="bg-light p-2 rounded-full shadow-md border border-gray-200 transition-transform duration-600 ease-out"
-                            style={{ transitionDelay: '1500ms', transform: `translateY(${isJourneyVisible ? 0 : '20px'})` }}
-                        >
-                            <ArrowDown className="h-8 w-8 text-primary"/>
+                <div className="relative flex-shrink-0 flex items-center justify-center z-10">
+                     <div className={`w-12 h-12 rounded-full bg-white shadow-lg border border-light flex items-center justify-center text-primary transition-all duration-700 ${isJourneyVisible ? 'scale-100 rotate-0' : 'scale-0 -rotate-180'}`} style={{ transitionDelay: '300ms' }}>
+                         <ArrowRight className="w-5 h-5 hidden lg:block" />
+                         <ArrowDown className="w-5 h-5 lg:hidden" />
+                     </div>
+                     <div className="absolute inset-0 bg-primary/10 rounded-full animate-ping opacity-20"></div>
+                </div>
+
+                <div className={`${CARD_CLASSES} bg-dark text-light border-dark shadow-2xl ${isJourneyVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10'}`} style={{ transitionDelay: '500ms' }}>
+                     <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-light font-bold text-[10px] px-4 py-1.5 rounded-full border-4 border-light uppercase tracking-widest shadow-lg z-20">Day 60</div>
+                     <div className="relative z-10 flex-1 flex flex-col items-center justify-center w-full">
+                        <div className="w-16 h-16 bg-light/10 rounded-full flex items-center justify-center mb-5 backdrop-blur-md ring-1 ring-light/20"><Trophy className="w-8 h-8 text-secondary" /></div>
+                        <div className="text-center mb-6">
+                            <p className="text-5xl font-extrabold text-light font-mono tracking-tighter">
+                                <span className="text-muted mr-1 text-3xl align-top mt-2 inline-block">#</span>
+                                <NumberTicker value={latestPost.metrics.rank} delay={1000} />
+                            </p>
+                            <p className="text-[10px] font-bold text-secondary uppercase mt-3 tracking-[0.2em] flex items-center justify-center gap-1">Final Rank</p>
                         </div>
+                     </div>
+                     <div className="relative z-10 w-full pt-6 border-t border-light/10 grid grid-cols-2 gap-4">
+                        <div className="text-center"><p className="font-bold text-xl text-light"><NumberTicker value={latestPost.metrics.clicks} delay={1200} /></p><p className="text-[10px] uppercase text-muted font-bold tracking-wider">Clicks</p></div>
+                         <div className="text-center"><p className="font-bold text-xl text-light"><NumberTicker value={latestPost.metrics.impressions} delay={1400} /></p><p className="text-[10px] uppercase text-muted font-bold tracking-wider">Impr.</p></div>
                     </div>
-                </div>
-
-                {/* Horizontal Connector for Desktop */}
-                <div className="hidden md:flex relative flex-grow max-w-[200px] h-1 bg-gray-200">
-                    <div 
-                        className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-primary/50 transition-transform duration-[1200ms] ease-out"
-                        style={{
-                            transformOrigin: 'left',
-                            transform: isJourneyVisible ? 'scaleX(1)' : 'scaleX(0)',
-                            transitionDelay: '500ms',
-                        }}
-                    ></div>
-                    <div
-                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 opacity-0 transition-opacity duration-600 ease-out"
-                        style={{ transitionDelay: '1500ms', opacity: isJourneyVisible ? 1 : 0 }}
-                    >
-                        <div
-                            className="bg-light p-2 rounded-full shadow-md border border-gray-200 transition-transform duration-600 ease-out"
-                            style={{ transitionDelay: '1500ms', transform: `translateY(${isJourneyVisible ? 0 : '20px'})` }}
-                        >
-                            <ArrowRight className="h-8 w-8 text-primary"/>
-                        </div>
-                    </div>
-                </div>
-                
-                {/* Day 60 Card */}
-                <div className={`flex-shrink-0 bg-white p-8 rounded-2xl shadow-xl border-2 border-primary w-full max-w-xs sm:w-72 text-center transition-all duration-800 delay-400 ${isJourneyVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}>
-                    <p className="text-sm font-bold text-primary uppercase">Day 60</p>
-                    <p className="text-primary font-mono text-5xl font-bold mt-2">#{latestPost.metrics.rank}</p>
-                    <p className="text-muted text-sm mt-2">{latestPost.metrics.clicks} Clicks, {latestPost.metrics.impressions} Impressions</p>
                 </div>
             </div>
         </div>
       </section>
       
-      {/* Performance Deep Dive */}
-       <section ref={chartRef} className={`py-24 bg-light animate-on-scroll ${isChartVisible ? 'is-visible' : ''}`}>
+       <section ref={chartRef} className={`py-32 bg-white animate-on-scroll ${isChartVisible ? 'is-visible' : ''}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-                <h2 className="text-3xl font-extrabold text-dark sm:text-4xl">Performance Deep Dive</h2>
-                <p className="mt-4 text-lg text-muted max-w-3xl mx-auto">
-                    Hover over the chart to explore how rank and impressions evolved over the entire 60-day period.
-                </p>
-            </div>
-            <div className="bg-white p-4 sm:p-8 rounded-2xl shadow-lg border border-gray-200 relative">
-                { chartData ? (
-                <>
-                <svg viewBox={`0 0 ${chartData.svgWidth} ${chartData.svgHeight}`} className="w-full h-auto" onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
-                    <defs>
-                        <linearGradient id="impressionGradientResults" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor={colors.muted} stopOpacity={0.1}/><stop offset="100%" stopColor={colors.muted} stopOpacity={0}/>
-                        </linearGradient>
-                        <linearGradient id="rankGradientResults" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor={colors.chart} stopOpacity={0.1}/><stop offset="100%" stopColor={colors.chart} stopOpacity={0}/>
-                        </linearGradient>
-                         <marker id="arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                            <path d="M 0 0 L 10 5 L 0 10 z" fill="#10B981" />
-                        </marker>
-                    </defs>
-                    
-                    <line x1={chartData.padding.left} y1={chartData.svgHeight - chartData.padding.bottom} x2={chartData.svgWidth - chartData.padding.right} y2={chartData.svgHeight - chartData.padding.bottom} stroke="#D1D5DB" />
-                    <text x={chartData.padding.left - 10} y={chartData.padding.top} dy="0.3em" textAnchor="end" className="text-xs fill-muted font-semibold">{chartData.maxImpressions}</text>
-                    <text x={chartData.padding.left - 10} y={chartData.svgHeight - chartData.padding.bottom} textAnchor="end" className="text-xs fill-muted font-semibold">0</text>
-                    <text x={10} y={chartData.svgHeight/2} className="text-xs fill-muted font-bold" transform={`rotate(-90 10,${chartData.svgHeight/2})`}>Impressions</text>
-                    
-                    <text x={chartData.svgWidth-chartData.padding.right + 10} y={chartData.padding.top} dy="0.3em" textAnchor="start" className="text-xs font-semibold" fill={colors.chart}>1</text>
-                    <text x={chartData.svgWidth-chartData.padding.right + 10} y={chartData.svgHeight - chartData.padding.bottom} textAnchor="start" className="text-xs font-semibold" fill={colors.chart}>{'>'}100</text>
-                    <text x={chartData.svgWidth - 15} y={chartData.svgHeight/2} className="text-xs font-bold" fill={colors.chart} transform={`rotate(90 ${chartData.svgWidth-15},${chartData.svgHeight/2})`}>Rank (Higher is Better)</text>
-                    
-                    <path d={`M${chartData.points[0].x},${chartData.svgHeight - chartData.padding.bottom} L${chartData.impressionLinePoints} L${chartData.points[chartData.points.length-1].x},${chartData.svgHeight - chartData.padding.bottom} Z`} fill="url(#impressionGradientResults)" />
-                    <polyline points={chartData.impressionLinePoints} fill="none" stroke={colors.muted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 2000, strokeDashoffset: 2000, animation: 'stroke-draw 2s 0.5s ease-out forwards' }} />
-                    
-                    <path d={`M${chartData.points[0].x},${chartData.svgHeight - chartData.padding.bottom} L${chartData.rankLinePoints} L${chartData.points[chartData.points.length-1].x},${chartData.svgHeight - chartData.padding.bottom} Z`} fill="url(#rankGradientResults)" />
-                    <polyline points={chartData.rankLinePoints} fill="none" stroke={colors.chart} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 2000, strokeDashoffset: 2000, animation: 'stroke-draw 2s ease-out forwards' }}/>
-
-                    {chartData.annotations.map((note, i) => (
-                        <g key={i} className="fade-in" style={{ animationDelay: `${2 + i * 0.3}s` }}>
-                            <line x1={note.x} y1={note.y} x2={note.x} y2={note.y - 40} stroke="#10B981" strokeWidth="1.5" strokeDasharray="3 3"/>
-                            <circle cx={note.x} cy={note.y} r="5" fill="#10B981" stroke="white" strokeWidth="2" />
-                            <text x={note.x + (i % 2 === 0 ? -8 : 8)} y={note.y - 45} textAnchor={i % 2 === 0 ? "end" : "start"} className="text-xs font-bold fill-emerald-600 bg-white" filter="url(#solid)">{note.label}</text>
-                        </g>
-                    ))}
-
-                    {tooltip && (
-                        <>
-                            <line x1={tooltip.x} y1={chartData.padding.top} x2={tooltip.x} y2={chartData.svgHeight - chartData.padding.bottom} stroke={colors.muted} strokeDasharray="3,3" />
-                            <circle cx={tooltip.x} cy={chartData.points.find(p => p.post.id === tooltip.post.id)?.yImpressions} r="5" fill="white" stroke={colors.muted} strokeWidth="2" />
-                            <circle cx={tooltip.x} cy={chartData.points.find(p => p.post.id === tooltip.post.id)?.yRank} r="5" fill="white" stroke={colors.chart} strokeWidth="2" />
-                        </>
-                    )}
-                </svg>
-
-                {tooltip && (
-                    <div className="absolute bg-dark text-white p-3 rounded-lg shadow-xl text-xs w-48 pointer-events-none transition-all duration-100" style={{ top: `${tooltip.y - 120}px`, left: tooltip.x > chartData.svgWidth / 2 ? `${tooltip.x - 200}px` : `${tooltip.x + 10}px` }}>
-                        <p className="font-bold border-b border-gray-600 pb-1 mb-1">{tooltip.post.date}</p>
-                        <p className="font-semibold">{tooltip.post.title}</p>
-                        <p className="mt-2"><span className="font-semibold" style={{ color: colors.chart }}>Rank:</span> {tooltip.post.metrics.rank}</p>
-                        <p><span className="text-muted font-semibold">Clicks:</span> {tooltip.post.metrics.clicks}</p>
-                        <p><span className="text-muted font-semibold">Impressions:</span> {tooltip.post.metrics.impressions}</p>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div className="lg:col-span-4 space-y-8">
+                    <div>
+                        <div className="inline-block p-3 rounded-2xl bg-primary/5 text-primary mb-4"><BarChart className="w-8 h-8" /></div>
+                        <h2 className="text-4xl font-extrabold text-dark leading-tight">Performance<br />Deep Dive</h2>
                     </div>
-                )}
-                </>
-                ) : <div className="text-center p-12 text-muted">Not enough data for chart.</div> }
+                    <p className="text-lg text-dark/70 leading-relaxed">Correlation between consistent output and search visibility.</p>
+                </div>
+                <div className="lg:col-span-8">
+                    <div className="bg-white p-6 sm:p-8 rounded-[2.5rem] shadow-2xl border border-light relative">
+                        { chartData ? (
+                        <div className="relative w-full aspect-[16/10] sm:aspect-[2/1]">
+                            <svg viewBox={`0 0 ${chartData.svgWidth} ${chartData.svgHeight}`} className="w-full h-full overflow-visible" onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)}>
+                                <defs>
+                                    <linearGradient id="impressionGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor={colors.primary} stopOpacity={0.1}/><stop offset="100%" stopColor={colors.primary} stopOpacity={0}/></linearGradient>
+                                </defs>
+                                <path d={`M${chartData.points[0].x},${chartData.svgHeight - chartData.padding.bottom} L${chartData.impressionLinePoints} L${chartData.points[chartData.points.length-1].x},${chartData.svgHeight - chartData.padding.bottom} Z`} fill="url(#impressionGrad)" />
+                                <polyline points={chartData.impressionLinePoints} fill="none" stroke={colors.primary} strokeWidth="2" strokeDasharray="5,5" strokeOpacity="0.4" />
+                                <polyline points={chartData.rankLinePoints} fill="none" stroke={colors.secondary} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                                {tooltip && (
+                                    <g><line x1={tooltip.x} y1={chartData.padding.top} x2={tooltip.x} y2={chartData.svgHeight - chartData.padding.bottom} stroke={colors.dark} strokeWidth="1" strokeDasharray="4 4" opacity="0.3" /><circle cx={tooltip.x} cy={chartData.points.find(p => p.post.id === tooltip.post.id)?.yRank} r="8" fill={colors.secondary} stroke="white" strokeWidth="3" /></g>
+                                )}
+                            </svg>
+                            {tooltip && (
+                                <div className="absolute z-50 bg-dark text-light p-4 rounded-xl shadow-2xl text-xs w-56 transform -translate-x-1/2 -translate-y-full" style={{ top: `${(tooltip.y / chartData.svgHeight) * 100}%`, left: `${(tooltip.x / chartData.svgWidth) * 100}%`, marginTop: '-20px' }}>
+                                    <div className="flex items-center justify-between mb-2 border-b border-light/10 pb-2"><span className="font-bold">{new Date(tooltip.post.date).toLocaleDateString()}</span></div>
+                                    <p className="font-bold text-sm mb-3 line-clamp-1">{tooltip.post.title}</p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="bg-light/10 p-2 rounded-lg"><p className="text-[10px] text-muted uppercase font-bold">Rank</p><p className="text-lg font-mono font-bold text-secondary">{tooltip.post.metrics.rank}</p></div>
+                                        <div className="bg-light/10 p-2 rounded-lg"><p className="text-[10px] text-muted uppercase font-bold">Impr.</p><p className="text-lg font-mono font-bold">{tooltip.post.metrics.impressions}</p></div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        ) : null }
+                    </div>
+                </div>
             </div>
         </div>
       </section>
 
-      {/* Key Learnings Section */}
-      <section ref={learningsRef} className={`py-24 bg-white animate-on-scroll ${isLearningsVisible ? 'is-visible' : ''}`}>
+      <section ref={learningsRef} className={`py-32 bg-light animate-on-scroll ${isLearningsVisible ? 'is-visible' : ''}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-                <h2 className="text-3xl font-extrabold text-dark sm:text-4xl">From Data to Decisions: Key Takeaways</h2>
-                <p className="mt-4 text-lg text-muted max-w-3xl mx-auto">
-                    Success is more than numbers. It's about the actionable insights gained along the way.
-                </p>
-            </div>
+            <div className="text-center mb-20"><h2 className="text-3xl font-extrabold text-dark sm:text-4xl">Strategic Takeaways</h2></div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {keyLearnings.map((learning, index) => (
-                    <div key={learning.title} className="relative bg-gradient-to-br from-white to-light p-8 rounded-2xl border border-gray-200 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 group animate-on-scroll is-visible" style={{ transitionDelay: `${200 + index * 150}ms`}}>
-                        <span className="absolute top-4 right-6 text-[100px] font-extrabold text-gray-200/60 transition-transform duration-300 group-hover:scale-105">0{index+1}</span>
+                    <div key={learning.title} className="relative bg-white p-10 rounded-[2rem] border border-muted/20 overflow-hidden group hover:shadow-2xl transition-all duration-500" style={{ transitionDelay: `${index * 100}ms` }}>
+                        <span className="absolute -bottom-6 -right-4 text-[140px] font-extrabold text-light opacity-50 select-none">0{index+1}</span>
                         <div className="relative z-10">
-                            <learning.icon className="h-10 w-10 text-primary" />
-                            <h3 className="mt-4 text-xl font-bold text-dark">{learning.title}</h3>
-                            <p className="mt-2 text-muted">{learning.description}</p>
+                            <div className="w-14 h-14 bg-light rounded-2xl flex items-center justify-center mb-8 text-primary group-hover:bg-primary group-hover:text-light transition-colors duration-300"><learning.icon className="h-6 w-6" /></div>
+                            <h3 className="text-2xl font-bold text-dark mb-4 group-hover:text-primary transition-colors">{learning.title}</h3>
+                            <p className="text-dark/70 leading-relaxed">{learning.description}</p>
                         </div>
                     </div>
                 ))}
@@ -420,26 +395,20 @@ const ResultsPage: React.FC = () => {
         </div>
       </section>
 
-       {/* CTA Section */}
-      <section ref={ctaRef} className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 animate-on-scroll ${isCtaVisible ? 'is-visible' : ''}`}>
-        <div className="bg-secondary text-white rounded-2xl p-12 text-center relative overflow-hidden">
-             <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/20 rounded-full"></div>
-             <div className="absolute -bottom-16 -left-10 w-48 h-48 bg-primary/20 rounded-full"></div>
-             <div className="relative z-10">
-                <h2 className="text-3xl font-extrabold">Ready to Replicate These Results for Your Brand?</h2>
-                <p className="mt-4 text-lg max-w-2xl mx-auto text-gray-300">
-                    The same data-driven, transparent process that powered this challenge can be applied to grow your business. Let's talk about your goals.
-                </p>
-                <div className="mt-8">
-                    <Link to="/work-with-me" className="group inline-flex items-center justify-center bg-primary text-primary-foreground font-bold py-3 px-8 rounded-lg text-lg transition-all duration-300 shadow-lg hover:brightness-95">
-                        Apply This Strategy to Your Brand
-                        <ArrowRight className="ml-2 transition-transform duration-300 group-hover:translate-x-1" />
-                    </Link>
+      <section ref={ctaRef} className={`py-24 bg-white animate-on-scroll ${isCtaVisible ? 'is-visible' : ''}`}>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-dark text-light rounded-[2.5rem] p-12 md:p-20 text-center relative overflow-hidden shadow-2xl shadow-dark/30">
+                 <div className="relative z-10">
+                    <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-6">Results You Can Replicate.</h2>
+                    <p className="text-lg md:text-xl text-light/70 max-w-2xl mx-auto mb-10">The same data-driven process can elevate your brand.</p>
+                    <div className="flex flex-col sm:flex-row justify-center gap-4">
+                        <Link to="/work-with-me" className="group inline-flex items-center justify-center bg-primary text-light font-bold py-4 px-10 rounded-xl text-lg transition-all duration-300 shadow-lg hover:scale-105">Apply This Strategy <ArrowRight className="ml-2 w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" /></Link>
+                        <Link to="/blog" className="inline-flex items-center justify-center bg-transparent border border-muted/30 text-light font-bold py-4 px-10 rounded-xl text-lg hover:bg-light/5">Read The Logs</Link>
+                    </div>
                 </div>
             </div>
         </div>
       </section>
-
     </div>
     );
 };

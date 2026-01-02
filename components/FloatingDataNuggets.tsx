@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from 'react';
 import { getThemeColor, hexToRgba } from '../lib/utils';
 
@@ -18,7 +17,7 @@ const NUGGET_CONTENT = [
     { type: 'audit', text: 'Tech Audit' },
 ];
 
-const SPAWN_INTERVAL = 2500; // ms - Increased to spawn less frequently
+const SPAWN_INTERVAL = 2500; 
 const MOUSE_REPULSION_RADIUS = 120;
 const MOUSE_REPULSION_STRENGTH = 3;
 
@@ -29,9 +28,9 @@ const drawIcon = (ctx: CanvasRenderingContext2D, type: string, x: number, y: num
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.beginPath();
-    const s = size; // shorthand
+    const s = size; 
     switch (type) {
-        case 'rank': // TrendingUp
+        case 'rank': 
             ctx.moveTo(x + s * 0.1, y + s);
             ctx.lineTo(x + s * 0.1, y + s * 0.6);
             ctx.lineTo(x + s * 0.5, y + s * 0.2);
@@ -40,7 +39,7 @@ const drawIcon = (ctx: CanvasRenderingContext2D, type: string, x: number, y: num
             ctx.moveTo(x + s * 0.5, y + s * 0.2);
             ctx.lineTo(x + s * 0.5, y);
             break;
-        case 'click': // MousePointer
+        case 'click': 
             ctx.moveTo(x, y);
             ctx.lineTo(x, y + s);
             ctx.lineTo(x + s * 0.3, y + s * 0.8);
@@ -48,12 +47,12 @@ const drawIcon = (ctx: CanvasRenderingContext2D, type: string, x: number, y: num
             ctx.lineTo(x + s * 0.8, y + s * 0.3);
             ctx.closePath();
             break;
-        case 'impression': // Eye
+        case 'impression': 
             ctx.ellipse(x + s / 2, y + s / 2, s / 2, s / 3.5, 0, 0, Math.PI * 2);
             ctx.moveTo(x + s * 0.8, y + s / 2);
             ctx.arc(x + s / 2, y + s / 2, s / 5, 0, Math.PI * 2);
             break;
-        case 'link': // Link
+        case 'link': 
             ctx.arc(x + s * 0.3, y + s / 2, s * 0.25, Math.PI * 0.5, Math.PI * 1.5);
             ctx.arc(x + s * 0.7, y + s / 2, s * 0.25, Math.PI * 1.5, Math.PI * 0.5);
             ctx.moveTo(x + s * 0.3, y + s * 0.25);
@@ -61,19 +60,19 @@ const drawIcon = (ctx: CanvasRenderingContext2D, type: string, x: number, y: num
             ctx.moveTo(x + s * 0.3, y + s * 0.75);
             ctx.lineTo(x + s * 0.7, y + s * 0.75);
             break;
-        case 'search': // Search
+        case 'search': 
             ctx.arc(x + s * 0.45, y + s * 0.45, s * 0.35, 0, Math.PI * 2);
             ctx.moveTo(x + s * 0.7, y + s * 0.7);
             ctx.lineTo(x + s, y + s);
             break;
-        case 'keyword': // Key
+        case 'keyword': 
             ctx.arc(x + s * 0.25, y + s * 0.25, s * 0.2, 0, Math.PI * 2);
             ctx.moveTo(x + s * 0.4, y + s * 0.4);
             ctx.lineTo(x + s * 0.8, y + s * 0.8);
             ctx.moveTo(x + s * 0.7, y + s);
             ctx.lineTo(x + s, y + s * 0.7);
             break;
-        case 'seo': // Rocket
+        case 'seo': 
             ctx.moveTo(x + s/2, y);
             ctx.lineTo(x + s, y + s * 0.75);
             ctx.quadraticCurveTo(x + s/2, y + s, x, y + s * 0.75);
@@ -83,20 +82,20 @@ const drawIcon = (ctx: CanvasRenderingContext2D, type: string, x: number, y: num
             ctx.moveTo(x + s * 0.8, y + s * 0.8);
             ctx.lineTo(x + s * 1.1, y + s * 1.1);
             break;
-        case 'content': // FileText
+        case 'content': 
             ctx.rect(x, y, s, s);
             ctx.moveTo(x + s * 0.2, y + s * 0.3);
             ctx.lineTo(x + s * 0.8, y + s * 0.3);
             ctx.moveTo(x + s * 0.2, y + s * 0.7);
             ctx.lineTo(x + s * 0.5, y + s * 0.7);
             break;
-        case 'ctr': // Percent
+        case 'ctr': 
             ctx.arc(x + s * 0.2, y + s * 0.2, s * 0.15, 0, Math.PI * 2);
             ctx.arc(x + s * 0.8, y + s * 0.8, s * 0.15, 0, Math.PI * 2);
             ctx.moveTo(x + s * 0.1, y + s * 0.9);
             ctx.lineTo(x + s * 0.9, y + s * 0.1);
             break;
-        case 'schema': // Code
+        case 'schema': 
              ctx.moveTo(x + s * 0.3, y);
              ctx.lineTo(x, y + s/2);
              ctx.lineTo(x + s * 0.3, y + s);
@@ -104,7 +103,7 @@ const drawIcon = (ctx: CanvasRenderingContext2D, type: string, x: number, y: num
              ctx.lineTo(x + s, y + s/2);
              ctx.lineTo(x + s * 0.7, y + s);
              break;
-        case 'speed': // Zap
+        case 'speed': 
              ctx.moveTo(x + s * 0.5, y);
              ctx.lineTo(x, y + s * 0.6);
              ctx.lineTo(x + s * 0.4, y + s * 0.6);
@@ -113,7 +112,7 @@ const drawIcon = (ctx: CanvasRenderingContext2D, type: string, x: number, y: num
              ctx.lineTo(x + s * 0.6, y + s * 0.4);
              ctx.closePath();
              break;
-        case 'audit': // Clipboard
+        case 'audit': 
              ctx.rect(x, y + s * 0.1, s, s * 0.9);
              ctx.rect(x + s * 0.2, y, s*0.6, s*0.3);
              break;
@@ -166,13 +165,13 @@ class Nugget {
         this.secondaryColor = colors.secondary;
         this.primaryColor = colors.primary;
         
-        this.size = Math.random() * 0.5 + 0.7; // Scale factor 0.7 to 1.2
+        this.size = Math.random() * 0.5 + 0.7; 
         this.base_opacity = this.size * 0.7;
         this.opacity = this.base_opacity;
         this.y = canvasHeight + 50;
         this.x = Math.random() * canvasWidth;
         
-        this.base_vy = -(Math.random() * 0.15 + 0.1) * this.size; // Base vertical speed
+        this.base_vy = -(Math.random() * 0.15 + 0.1) * this.size; 
         this.vy = this.base_vy;
         this.vx = (Math.random() - 0.5) * 0.2;
 
@@ -182,7 +181,7 @@ class Nugget {
         const fontSize = 12 * this.size;
         ctx.font = `500 ${fontSize}px 'Roboto Mono', monospace`;
         const textMetrics = ctx.measureText(this.content.text);
-        this.width = textMetrics.width + 24 + 20; // 20 for icon
+        this.width = textMetrics.width + 24 + 20; 
         this.height = fontSize + 16;
     }
 
@@ -191,7 +190,6 @@ class Nugget {
         this.angle += 0.02;
         this.x += this.vx + Math.sin(this.angle + this.waveOffset) * 0.2;
         
-        // Mouse repulsion
         const dx = this.x - mouse.x;
         const dy = this.y - mouse.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -203,11 +201,9 @@ class Nugget {
             this.vy += forceDirectionY * force * MOUSE_REPULSION_STRENGTH;
         }
 
-        // Dampening / return to base speed
         this.vx *= 0.98;
         this.vy += (this.base_vy - this.vy) * 0.05;
 
-        // Update opacity based on vertical position
         const fadeStartHeight = canvasHeight * 0.8;
         if (this.y < fadeStartHeight) {
             this.opacity = this.base_opacity * (this.y / fadeStartHeight);
@@ -223,17 +219,16 @@ class Nugget {
     draw(ctx: CanvasRenderingContext2D) {
         ctx.save();
         
-        // Card
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+        ctx.shadowColor = 'rgba(40, 54, 24, 0.1)'; // Black Forest shadow
         ctx.shadowBlur = 10;
         ctx.shadowOffsetY = 4;
         
         const gradient = ctx.createLinearGradient(this.x, this.y, this.x, this.y + this.height);
-        gradient.addColorStop(0, hexToRgba('#FFFFFF', this.opacity * 0.9));
-        gradient.addColorStop(1, hexToRgba(this.lightColor, this.opacity * 0.9));
+        gradient.addColorStop(0, hexToRgba('#FFFFFF', this.opacity * 0.95));
+        gradient.addColorStop(1, hexToRgba(this.lightColor, this.opacity * 0.95));
         
         ctx.fillStyle = gradient;
-        ctx.strokeStyle = hexToRgba('#D1D5DB', this.opacity * 0.5); // gray-300
+        ctx.strokeStyle = hexToRgba('#DDA15E', this.opacity * 0.3); // Muted / Caramel
         ctx.lineWidth = 1;
         drawRoundedRect(ctx, this.x - this.width / 2, this.y - this.height / 2, this.width, this.height, this.height / 2);
         ctx.fill();
@@ -241,16 +236,15 @@ class Nugget {
 
         ctx.restore();
 
-        // Content
         const fontSize = 12 * this.size;
-        ctx.font = `500 ${fontSize}px 'Roboto Mono', monospace`;
-        ctx.fillStyle = hexToRgba(this.secondaryColor, this.opacity);
+        ctx.font = `600 ${fontSize}px 'Roboto Mono', monospace`;
+        ctx.fillStyle = hexToRgba('#283618', this.opacity); // Dark / Black Forest
         
         const contentStartX = this.x - this.width / 2 + 12;
         const iconY = this.y - (fontSize / 1.5);
         const textY = this.y + fontSize / 3;
 
-        drawIcon(ctx, this.content.type, contentStartX, iconY, fontSize * 1.2, this.opacity, this.primaryColor);
+        drawIcon(ctx, this.content.type, contentStartX, iconY, fontSize * 1.2, this.opacity, this.primaryColor); // Olive Leaf Icon
         ctx.fillText(this.content.text, contentStartX + 20, textY);
     }
 }
@@ -264,13 +258,13 @@ const FloatingDataNuggets: React.FC<{ isAnimating: boolean }> = ({ isAnimating }
     const spawnIntervalId = useRef<number | undefined>(undefined);
     
     // Theme Colors Refs
-    const themeColors = useRef({ light: '#F3F4F6', secondary: '#4B5563', primary: '#000000' });
+    const themeColors = useRef({ light: '#FEFAE0', secondary: '#BC6C25', primary: '#606C38' });
 
     useEffect(() => {
         themeColors.current = {
-            light: getThemeColor('light', '#F3F4F6'),
-            secondary: getThemeColor('secondary', '#4B5563'),
-            primary: getThemeColor('primary', '#000000')
+            light: getThemeColor('light', '#FEFAE0'),
+            secondary: getThemeColor('secondary', '#BC6C25'),
+            primary: getThemeColor('primary', '#606C38')
         };
     }, []);
 

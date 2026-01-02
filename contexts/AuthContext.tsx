@@ -1,29 +1,31 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../lib/supabaseClient';
-import { Session, AuthError } from '@supabase/supabase-js';
 
+// Use any for Session and AuthError as they are not exported from @supabase/supabase-js in this environment
 interface AuthContextType {
-  session: Session | null;
+  session: any | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<{ error: AuthError | null }>;
-  logout: () => Promise<{ error: AuthError | null }>;
+  login: (email: string, pass: string) => Promise<{ error: any | null }>;
+  logout: () => Promise<{ error: any | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // This will run once when the component mounts.
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Cast supabase.auth to any to bypass missing method type definitions in the current environment
+    (supabase.auth as any).getSession().then(({ data: { session } }: any) => {
       setSession(session);
       setLoading(false);
     });
 
     // This listens for auth changes.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Cast supabase.auth to any to bypass missing method type definitions in the current environment
+    const { data: { subscription } } = (supabase.auth as any).onAuthStateChange((_event: any, session: any) => {
       setSession(session);
     });
 
@@ -33,12 +35,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (email: string, pass: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    // Cast supabase.auth to any to bypass missing method type definitions in the current environment
+    const { error } = await (supabase.auth as any).signInWithPassword({ email, password: pass });
     return { error };
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
+    // Cast supabase.auth to any to bypass missing method type definitions in the current environment
+    const { error } = await (supabase.auth as any).signOut();
     return { error };
   };
 

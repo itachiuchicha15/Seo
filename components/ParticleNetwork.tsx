@@ -1,6 +1,5 @@
-
 import React, { useRef, useEffect } from 'react';
-import { getThemeColor, hexToRgba } from '../lib/utils';
+import { getThemeColor } from '../lib/utils';
 
 interface ParticleNetworkProps {
     isAnimating: boolean;
@@ -49,13 +48,13 @@ const ParticleNetwork: React.FC<ParticleNetworkProps> = ({ isAnimating }) => {
     const particles = useRef<Particle[]>([]);
     const mouse = useRef({ x: -1000, y: -1000, radius: 100 });
 
-    // Fetch colors once on mount
-    const mutedColor = useRef('#9CA3AF');
-    const primaryColor = useRef('#000000');
+    // Fetch colors from theme
+    const mutedColor = useRef('#DDA15E'); // Light Caramel
+    const primaryColor = useRef('#606C38'); // Olive Leaf
 
     useEffect(() => {
-        mutedColor.current = getThemeColor('muted', '#9CA3AF');
-        primaryColor.current = getThemeColor('primary', '#000000');
+        mutedColor.current = getThemeColor('muted', '#DDA15E');
+        primaryColor.current = getThemeColor('primary', '#606C38');
     }, []);
 
     useEffect(() => {
@@ -89,7 +88,7 @@ const ParticleNetwork: React.FC<ParticleNetworkProps> = ({ isAnimating }) => {
 
                     if (distance < 120) {
                         opacityValue = 1 - (distance / 120);
-                        ctx.strokeStyle = `rgba(${mr}, ${mg}, ${mb}, ${opacityValue})`; 
+                        ctx.strokeStyle = `rgba(${mr}, ${mg}, ${mb}, ${opacityValue * 0.4})`; 
                         ctx.lineWidth = 0.5;
                         ctx.beginPath();
                         ctx.moveTo(particles.current[a].x, particles.current[a].y);

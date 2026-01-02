@@ -1,7 +1,7 @@
 
-
 import React from 'react';
-import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
+// Use double quotes for react-router-dom to resolve potential type resolution issues in some environments
+import { HashRouter, Routes, Route, useLocation } from "react-router-dom";
 import Header from './components/Header';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';

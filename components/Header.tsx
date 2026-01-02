@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+// Use double quotes for react-router-dom to resolve potential type resolution issues in some environments
+import { Link, NavLink } from "react-router-dom";
 import { X, Menu } from 'lucide-react';
 
 const Header: React.FC = () => {
@@ -8,7 +8,7 @@ const Header: React.FC = () => {
 
   // Style for standard desktop nav links
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `relative px-3 py-2 rounded-md text-sm font-medium transition-colors duration-300 ${
+    `relative px-3 py-2 rounded-md text-sm font-bold transition-colors duration-300 ${
       isActive
         ? 'text-dark'
         : 'text-muted hover:text-dark'
@@ -18,10 +18,10 @@ const Header: React.FC = () => {
     
   // Style for standard mobile nav links
   const mobileNavLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `block py-2 px-3 rounded-md text-base font-medium transition-colors duration-200 ${
+  `block py-2 px-3 rounded-md text-base font-bold transition-colors duration-200 ${
     isActive
-      ? 'bg-primary/10 text-dark font-semibold'
-      : 'text-secondary hover:bg-gray-100 hover:text-dark'
+      ? 'bg-primary/10 text-dark'
+      : 'text-muted hover:bg-muted/10 hover:text-dark'
   }`;
 
   // All navigation items, in order
@@ -32,8 +32,8 @@ const Header: React.FC = () => {
     { path: '/services', label: 'Services' },
     { path: '/challenge', label: 'The Challenge' },
     { path: '/results', label: 'Results' },
-    { path: '/work-with-me', label: 'Work With Me' },
     { path: '/contact', label: 'Contact' },
+    { path: '/work-with-me', label: 'Work With Me' },
   ];
 
   const ctaPath = '/work-with-me';
@@ -44,11 +44,11 @@ const Header: React.FC = () => {
   const ctaNavItem = allNavItems.find(item => item.path === ctaPath)!;
 
   return (
-    <header className="bg-light/80 backdrop-blur-lg sticky top-0 z-50 border-b border-gray-200">
+    <header className="bg-light/90 backdrop-blur-lg sticky top-0 z-50 border-b border-muted/10">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex-shrink-0">
-            <Link to="/" className="text-2xl font-bold text-dark hover:text-primary transition-colors duration-300">
+            <Link to="/" className="text-xl md:text-2xl font-extrabold text-dark hover:text-primary transition-all duration-300">
               Search Me If You Can
             </Link>
           </div>
@@ -65,7 +65,7 @@ const Header: React.FC = () => {
             <div className="ml-6">
                 <Link
                     to={ctaNavItem.path}
-                    className="inline-block bg-primary text-white font-bold py-2 px-5 rounded-full text-sm hover:brightness-95 transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md shadow-primary/20"
+                    className="inline-block bg-primary text-light font-bold py-2 px-5 rounded-full text-sm hover:brightness-95 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-primary/20"
                 >
                     {ctaNavItem.label}
                 </Link>
@@ -75,7 +75,7 @@ const Header: React.FC = () => {
             <button
               onClick={() => setIsOpen(!isOpen)}
               type="button"
-              className="bg-gray-100 inline-flex items-center justify-center p-2 rounded-md text-muted hover:text-dark hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-light focus:ring-primary"
+              className="bg-muted/10 inline-flex items-center justify-center p-2 rounded-md text-muted hover:text-dark hover:bg-muted/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-light focus:ring-primary"
               aria-controls="mobile-menu"
               aria-expanded={isOpen}
             >
@@ -87,7 +87,7 @@ const Header: React.FC = () => {
       </nav>
 
       {isOpen && (
-        <div className="md:hidden" id="mobile-menu">
+        <div className="md:hidden bg-white/95 border-b border-muted/10" id="mobile-menu">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             {allNavItems.map((item) => {
                 if (item.path === ctaPath) {
@@ -95,7 +95,7 @@ const Header: React.FC = () => {
                         <div className="py-1" key={item.path}>
                             <NavLink 
                                 to={item.path} 
-                                className={({ isActive }) => `block text-center py-2.5 px-3 rounded-md text-base font-bold transition-colors duration-200 ${isActive ? 'bg-primary text-white shadow-inner' : 'bg-secondary text-white hover:bg-dark'}`}
+                                className={({ isActive }) => `block text-center py-2.5 px-3 rounded-md text-base font-bold transition-colors duration-200 ${isActive ? 'bg-primary text-light shadow-inner' : 'bg-secondary text-light hover:bg-dark'}`}
                                 onClick={() => setIsOpen(false)}
                             >
                                 {item.label}

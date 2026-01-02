@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import CountdownTimer from '../components/CountdownTimer';
@@ -36,7 +35,7 @@ const faqs = [
 
 const FAQItem: React.FC<{ question: string; answer: string, isOpen: boolean, onClick: () => void }> = ({ question, answer, isOpen, onClick }) => {
     return (
-        <div className="border-b border-gray-200">
+        <div className="border-b border-muted/10">
             <button
                 onClick={onClick}
                 className="flex w-full items-center justify-between py-5 sm:py-6 text-left"
@@ -65,16 +64,16 @@ const RankChange: React.FC<{ currentRank: number | string; prevRank: number | st
         return <span className="text-muted font-semibold">{currentRank}</span>;
     }
     if (prevRank === null || typeof prevRank !== 'number') {
-        return <span className="text-green-500 flex items-center gap-1"><TrendingUp size={14} /> Indexed</span>;
+        return <span className="text-primary flex items-center gap-1 font-bold"><TrendingUp size={14} /> Indexed</span>;
     }
 
-    const change = prevRank - currentRank; // Lower is better, so positive change is good
+    const change = (typeof prevRank === 'number' ? prevRank : 100) - (typeof currentRank === 'number' ? currentRank : 100); 
 
     if (change > 0) {
-        return <span className="text-green-500 flex items-center gap-1" title={`Improved by ${change} positions`}><ArrowUp size={14} /> {change}</span>;
+        return <span className="text-primary flex items-center gap-1 font-bold" title={`Improved by ${change} positions`}><ArrowUp size={14} /> {change}</span>;
     }
     if (change < 0) {
-        return <span className="text-red-500 flex items-center gap-1" title={`Dropped by ${Math.abs(change)} positions`}><ArrowDown size={14} /> {Math.abs(change)}</span>;
+        return <span className="text-secondary flex items-center gap-1 font-bold" title={`Dropped by ${Math.abs(change)} positions`}><ArrowDown size={14} /> {Math.abs(change)}</span>;
     }
     return <span className="text-muted flex items-center gap-1"><Minus size={14} /> 0</span>;
 };
@@ -84,7 +83,7 @@ const DashboardSkeleton: React.FC = () => {
         <div className="animate-pulse space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+                    <div key={i} className="bg-white p-6 rounded-2xl shadow-lg border border-muted/10">
                         <div className="flex justify-between items-start mb-4">
                             <Skeleton className="h-6 w-32" />
                             <Skeleton className="h-8 w-8 rounded-md" />
@@ -94,7 +93,7 @@ const DashboardSkeleton: React.FC = () => {
                     </div>
                 ))}
             </div>
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200">
+            <div className="bg-white p-6 rounded-2xl shadow-lg border border-muted/10">
                 <Skeleton className="h-6 w-48 mb-6" />
                 <Skeleton className="h-64 w-full rounded-lg" />
                 <div className="mt-6 flex justify-center">
@@ -111,25 +110,24 @@ const LiveChallengeDashboard: React.FC<{ blogPosts: BlogPost[] }> = ({ blogPosts
     const [ref, isVisible] = useIntersectionObserver();
     const isMobile = useMediaQuery('(max-width: 768px)');
     
-    // Dynamic chart colors
-    const [colors, setColors] = useState({ primary: '#000000', muted: '#9CA3AF', chart: '#F59E0B', light: '#F3F4F6' });
+    const [colors, setColors] = useState({ primary: '#606C38', muted: '#DDA15E', chart: '#BC6C25', dark: '#283618', light: '#FEFAE0' });
 
     useEffect(() => {
         setColors({
-            // Ensure 'chart' color is fetched specifically for the chart
-            primary: getThemeColor('primary', '#000000'),
-            muted: getThemeColor('muted', '#9CA3AF'),
-            chart: getThemeColor('chart', '#F59E0B'),
-            light: getThemeColor('light', '#F3F4F6')
+            primary: getThemeColor('primary', '#606C38'),
+            muted: getThemeColor('muted', '#DDA15E'),
+            chart: getThemeColor('chart', '#BC6C25'),
+            dark: getThemeColor('dark', '#283618'),
+            light: getThemeColor('light', '#FEFAE0')
         });
     }, []);
 
-    const sortedPosts = useMemo(() => blogPosts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [blogPosts]);
+    const sortedPosts = useMemo(() => [...blogPosts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [blogPosts]);
     const allPostsChronological = useMemo(() => [...blogPosts].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()), [blogPosts]);
     
     if (blogPosts.length === 0) {
         return (
-            <div className="text-center py-10 bg-white rounded-2xl shadow-lg border border-gray-200">
+            <div className="text-center py-10 bg-white rounded-2xl shadow-lg border border-muted/10">
                 <p className="text-muted">No challenge data available yet. Check back soon!</p>
             </div>
         );
@@ -139,7 +137,7 @@ const LiveChallengeDashboard: React.FC<{ blogPosts: BlogPost[] }> = ({ blogPosts
     const firstPost = sortedPosts[sortedPosts.length - 1];
 
     const getGrowth = useCallback((start: number, end: number) => {
-        if (start === 0) return end > 0 ? 'NEW' : '0%';
+        if (start === 0) return 'NEW';
         const percentage = ((end - start) / start) * 100;
         return `${percentage > 0 ? '+' : ''}${percentage.toFixed(0)}%`;
     }, []);
@@ -162,7 +160,7 @@ const LiveChallengeDashboard: React.FC<{ blogPosts: BlogPost[] }> = ({ blogPosts
             if (typeof post.metrics.rank === 'number') {
                 yRank = PADDING.top + (SVG_HEIGHT - PADDING.top - PADDING.bottom) * (post.metrics.rank / maxRank);
             } else {
-                yRank = SVG_HEIGHT - PADDING.bottom; // Place "Not Indexed" at the bottom
+                yRank = SVG_HEIGHT - PADDING.bottom;
             }
 
             return { post, x, yImpressions, yRank };
@@ -189,27 +187,6 @@ const LiveChallengeDashboard: React.FC<{ blogPosts: BlogPost[] }> = ({ blogPosts
         };
     }, [allPostsChronological]);
 
-    const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-        if (!chartData) return;
-        const svg = e.currentTarget;
-        const pt = svg.createSVGPoint();
-        pt.x = e.clientX;
-        const cursorPoint = pt.matrixTransform(svg.getScreenCTM()?.inverse());
-        
-        updateTooltip(cursorPoint.x);
-    };
-
-    const handleTouchMove = (e: React.TouchEvent<SVGSVGElement>) => {
-        if (!chartData) return;
-        const svg = e.currentTarget;
-        const touch = e.touches[0];
-        const pt = svg.createSVGPoint();
-        pt.x = touch.clientX;
-        const cursorPoint = pt.matrixTransform(svg.getScreenCTM()?.inverse());
-        
-        updateTooltip(cursorPoint.x);
-    };
-
     const updateTooltip = (cursorX: number) => {
         if (!chartData) return;
         let closestPoint = null;
@@ -223,7 +200,7 @@ const LiveChallengeDashboard: React.FC<{ blogPosts: BlogPost[] }> = ({ blogPosts
             }
         });
 
-        if (closestPoint && minDistance < 50) { // Increased tolerance for easier touch/mouse interaction
+        if (closestPoint && minDistance < 50) {
             setTooltip({
                 x: closestPoint.x,
                 y: Math.min(closestPoint.yImpressions, closestPoint.yRank),
@@ -236,9 +213,8 @@ const LiveChallengeDashboard: React.FC<{ blogPosts: BlogPost[] }> = ({ blogPosts
     
     return (
         <div ref={ref} className={`animate-on-scroll ${isVisible ? 'is-visible' : ''}`}>
-            {/* Cards - Mobile: Horizontal Scroll (75vw for peek), Desktop: Grid. Reduced bottom padding to 4 (pb-4) for cleaner mobile look. */}
             <div className="flex flex-nowrap overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4 md:grid md:grid-cols-3 md:gap-8 md:overflow-visible md:pb-0 md:mx-0 md:px-0 scrollbar-hide">
-                <div className="min-w-[75vw] md:min-w-0 snap-center bg-white p-6 rounded-2xl shadow-lg border border-gray-200 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between h-auto">
+                <div className="min-w-[75vw] md:min-w-0 snap-center bg-white p-6 rounded-2xl shadow-lg border border-muted/10 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between h-auto">
                     <div>
                         <div className="flex justify-between items-start">
                             <h3 className="text-lg font-semibold text-dark">Current SERP Rank</h3>
@@ -248,44 +224,46 @@ const LiveChallengeDashboard: React.FC<{ blogPosts: BlogPost[] }> = ({ blogPosts
                         <p className="text-sm text-muted mt-2">From <span className="font-semibold text-secondary">Not Indexed</span></p>
                     </div>
                 </div>
-                <div className="min-w-[75vw] md:min-w-0 snap-center bg-white p-6 rounded-2xl shadow-lg border border-gray-200 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between h-auto">
+                <div className="min-w-[75vw] md:min-w-0 snap-center bg-white p-6 rounded-2xl shadow-lg border border-muted/10 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between h-auto">
                     <div>
                         <div className="flex justify-between items-start">
                             <h3 className="text-lg font-semibold text-dark">Total Clicks</h3>
                             <MousePointer className="h-8 w-8 text-primary/80" />
                         </div>
                         <p className="text-5xl font-bold font-mono text-dark mt-4">{latestPost.metrics.clicks}</p>
-                        <p className="text-sm font-semibold text-green-600 mt-2">{getGrowth(firstPost.metrics.clicks, latestPost.metrics.clicks)} vs Day 1</p>
+                        <p className="text-sm font-semibold text-primary mt-2">{getGrowth(firstPost.metrics.clicks, latestPost.metrics.clicks)} vs Day 1</p>
                     </div>
                 </div>
-                <div className="min-w-[75vw] md:min-w-0 snap-center bg-white p-6 rounded-2xl shadow-lg border border-gray-200 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between h-auto">
+                <div className="min-w-[75vw] md:min-w-0 snap-center bg-white p-6 rounded-2xl shadow-lg border border-muted/10 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col justify-between h-auto">
                     <div>
                         <div className="flex justify-between items-start">
                             <h3 className="text-lg font-semibold text-dark">Total Impressions</h3>
                             <Eye className="h-8 w-8 text-primary/80" />
                         </div>
                         <p className="text-5xl font-bold font-mono text-dark mt-4">{latestPost.metrics.impressions}</p>
-                        <p className="text-sm font-semibold text-green-600 mt-2">{getGrowth(firstPost.metrics.impressions, latestPost.metrics.impressions)} vs Day 1</p>
+                        <p className="text-sm font-semibold text-primary mt-2">{getGrowth(firstPost.metrics.impressions, latestPost.metrics.impressions)} vs Day 1</p>
                     </div>
                 </div>
             </div>
 
-            <div className="mt-8 bg-white p-4 sm:p-6 rounded-2xl shadow-lg border border-gray-200">
+            <div className="mt-8 bg-white p-4 sm:p-6 rounded-2xl shadow-lg border border-muted/10">
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-dark">Performance Over Time</h3>
                 </div>
                 
                 {chartData ? (
                 <div className="relative w-full">
-                    <div className="w-full">
                     <svg
                         viewBox={`0 0 ${chartData.svgWidth} ${chartData.svgHeight}`}
                         className="w-full h-auto select-none"
-                        onMouseMove={handleMouseMove}
-                        onTouchStart={handleTouchMove}
-                        onTouchMove={handleTouchMove}
+                        onMouseMove={(e) => {
+                             const svg = e.currentTarget;
+                             const pt = svg.createSVGPoint();
+                             pt.x = e.clientX;
+                             const cursorPoint = pt.matrixTransform(svg.getScreenCTM()?.inverse());
+                             updateTooltip(cursorPoint.x);
+                        }}
                         onMouseLeave={() => setTooltip(null)}
-                        onTouchEnd={() => setTooltip(null)}
                         style={{ touchAction: 'pan-y' }} 
                     >
                         <defs>
@@ -299,68 +277,40 @@ const LiveChallengeDashboard: React.FC<{ blogPosts: BlogPost[] }> = ({ blogPosts
                             </linearGradient>
                         </defs>
 
-                        {/* Axes and Labels */}
-                        <line x1={chartData.padding.left} y1={chartData.svgHeight - chartData.padding.bottom} x2={chartData.svgWidth - chartData.padding.right} y2={chartData.svgHeight - chartData.padding.bottom} stroke="#D1D5DB" />
+                        <line x1={chartData.padding.left} y1={chartData.svgHeight - chartData.padding.bottom} x2={chartData.svgWidth - chartData.padding.right} y2={chartData.svgHeight - chartData.padding.bottom} stroke={colors.muted} strokeOpacity="0.2" />
                         
-                        {/* Y-Axis Labels - Increased font size on mobile for readability */}
-                        <text x={chartData.padding.left - 10} y={chartData.padding.top} dy="0.3em" textAnchor="end" className="text-xs fill-muted font-semibold" fontSize={isMobile ? "14" : "12"}>{chartData.maxImpressions}</text>
-                        <text x={chartData.padding.left - 10} y={chartData.svgHeight - chartData.padding.bottom} textAnchor="end" className="text-xs fill-muted font-semibold" fontSize={isMobile ? "14" : "12"}>0</text>
+                        <text x={chartData.padding.left - 10} y={chartData.padding.top} dy="0.3em" textAnchor="end" className="text-xs font-semibold fill-muted" fontSize={isMobile ? "14" : "12"}>{chartData.maxImpressions}</text>
+                        <text x={chartData.padding.left - 10} y={chartData.svgHeight - chartData.padding.bottom} textAnchor="end" className="text-xs font-semibold fill-muted" fontSize={isMobile ? "14" : "12"}>0</text>
                         
-                        {/* Right Y-Axis Labels */}
                         <text x={chartData.svgWidth-chartData.padding.right + 10} y={chartData.padding.top} dy="0.3em" textAnchor="start" className="text-xs font-semibold" fill={colors.chart} fontSize={isMobile ? "14" : "12"}>1</text>
                         <text x={chartData.svgWidth-chartData.padding.right + 10} y={chartData.svgHeight - chartData.padding.bottom} textAnchor="start" className="text-xs font-semibold" fill={colors.chart} fontSize={isMobile ? "14" : "12"}>{'>'}{chartData.maxRank}</text>
                         
-                        {/* Axis Titles */}
-                        <text x={10} y={chartData.svgHeight/2} className="text-xs fill-muted font-bold" transform={`rotate(-90 10,${chartData.svgHeight/2})`} fontSize={isMobile ? "14" : "12"}>Impressions</text>
-                        <text x={chartData.svgWidth - 10} y={chartData.svgHeight/2} className="text-xs font-bold" fill={colors.chart} transform={`rotate(90 ${chartData.svgWidth-10},${chartData.svgHeight/2})`} fontSize={isMobile ? "14" : "12"}>Rank (Lower is Better)</text>
-                        
-                        {/* Grid lines */}
-                        {[...Array(5)].map((_, i) => (
-                            <line
-                                key={i}
-                                x1={chartData.padding.left}
-                                y1={chartData.padding.top + i * (chartData.svgHeight - chartData.padding.top - chartData.padding.bottom) / 4}
-                                x2={chartData.svgWidth - chartData.padding.right}
-                                y2={chartData.padding.top + i * (chartData.svgHeight - chartData.padding.top - chartData.padding.bottom) / 4}
-                                stroke="#E5E7EB"
-                                strokeDasharray="2,3"
-                            />
-                        ))}
-                        
-                        {/* Area Gradients */}
-                        <path d={chartData.impressionAreaPoints} fill="url(#impressionGradient)" className="fade-in" style={{ animationDelay: '1s' }} />
-                        <path d={chartData.rankAreaPoints} fill="url(#rankGradient)" className="fade-in" style={{ animationDelay: '0.5s' }}/>
+                        <path d={chartData.impressionAreaPoints} fill="url(#impressionGradient)" />
+                        <path d={chartData.rankAreaPoints} fill="url(#rankGradient)" />
 
-                        {/* Data Lines */}
-                        <polyline points={chartData.impressionLinePoints} fill="none" stroke={colors.muted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 1000, strokeDashoffset: 1000, animation: 'stroke-draw 2s 0.5s ease-out forwards' }} />
-                        <polyline points={chartData.rankLinePoints} fill="none" stroke={colors.chart} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ strokeDasharray: 1000, strokeDashoffset: 1000, animation: 'stroke-draw 2s ease-out forwards' }}/>
+                        <polyline points={chartData.impressionLinePoints} fill="none" stroke={colors.muted} strokeWidth="2" strokeDasharray="4,4" />
+                        <polyline points={chartData.rankLinePoints} fill="none" stroke={colors.chart} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
 
-                        {/* Tooltip */}
                         {tooltip && (
                             <g>
                                 <line x1={tooltip.x} y1={chartData.padding.top} x2={tooltip.x} y2={chartData.svgHeight - chartData.padding.bottom} stroke={colors.muted} strokeDasharray="3,3" />
-                                <circle cx={tooltip.x} cy={chartData.points.find(p => p.post.id === tooltip.post.id)?.yImpressions} r="5" fill="white" stroke={colors.muted} strokeWidth="2" />
-                                <circle cx={tooltip.x} cy={chartData.points.find(p => p.post.id === tooltip.post.id)?.yRank} r="5" fill="white" stroke={colors.chart} strokeWidth="2" />
-                                
-                                {/* SVG Tooltip Box to ensure it scales correctly with the chart */}
                                 <g transform={`translate(${tooltip.x > chartData.svgWidth / 2 ? tooltip.x - 210 : tooltip.x + 10}, ${chartData.padding.top})`}>
-                                    <rect width="200" height="85" rx="8" fill="#111827" fillOpacity="0.95" stroke="#374151" strokeWidth="1" />
-                                    <text x="10" y="25" fill="white" fontSize="12" fontWeight="bold">{tooltip.post.title.substring(0, 28)}{tooltip.post.title.length > 28 ? '...' : ''}</text>
+                                    <rect width="200" height="85" rx="8" fill={colors.dark} fillOpacity="0.95" />
+                                    <text x="10" y="25" fill={colors.light} fontSize="12" fontWeight="bold">{tooltip.post.title.substring(0, 28)}...</text>
                                     <text x="10" y="45" fill={colors.chart} fontSize="11" fontWeight="bold">Rank: {tooltip.post.metrics.rank}</text>
-                                    <text x="10" y="60" fill="#9CA3AF" fontSize="11">Clicks: <tspan fill="white" fontWeight="semibold">{tooltip.post.metrics.clicks}</tspan></text>
-                                    <text x="10" y="75" fill="#9CA3AF" fontSize="11">Impressions: <tspan fill="white" fontWeight="semibold">{tooltip.post.metrics.impressions}</tspan></text>
+                                    <text x="10" y="60" fill={colors.muted} fontSize="11">Clicks: <tspan fill={colors.light}>{tooltip.post.metrics.clicks}</tspan></text>
+                                    <text x="10" y="75" fill={colors.muted} fontSize="11">Impressions: <tspan fill={colors.light}>{tooltip.post.metrics.impressions}</tspan></text>
                                 </g>
                             </g>
                         )}
                     </svg>
-                    </div>
                 </div>
                 ) : <div className="text-center p-8 text-muted">Not enough data to display chart.</div>}
 
                 <div className="mt-6 text-center">
                     <button 
                         onClick={() => setIsLogVisible(!isLogVisible)} 
-                        className="font-semibold text-primary hover:text-dark transition-colors inline-flex items-center gap-2"
+                        className="font-bold text-primary hover:text-dark transition-colors inline-flex items-center gap-2"
                         aria-expanded={isLogVisible}
                     >
                         {isLogVisible ? 'Hide Detailed Log' : 'Show Detailed Log'}
@@ -370,36 +320,27 @@ const LiveChallengeDashboard: React.FC<{ blogPosts: BlogPost[] }> = ({ blogPosts
 
                 {isLogVisible && (
                     <div className="mt-6 overflow-x-auto fade-in">
-                        <div className="border border-gray-200 rounded-lg">
-                            <table className="min-w-full bg-white divide-y divide-gray-200">
-                                <thead className="bg-light">
+                        <div className="border border-muted/10 rounded-lg">
+                            <table className="min-w-full bg-white divide-y divide-muted/10">
+                                <thead className="bg-light/30">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Date</th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">Update</th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-muted uppercase tracking-wider">Rank</th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-muted uppercase tracking-wider">Rank Change</th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-muted uppercase tracking-wider">Clicks</th>
-                                        <th className="px-6 py-3 text-right text-xs font-medium text-muted uppercase tracking-wider">Impressions</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-muted uppercase tracking-wider">Date</th>
+                                        <th className="px-6 py-3 text-left text-xs font-bold text-muted uppercase tracking-wider">Update</th>
+                                        <th className="px-6 py-3 text-right text-xs font-bold text-muted uppercase tracking-wider">Rank</th>
+                                        <th className="px-6 py-3 text-right text-xs font-bold text-muted uppercase tracking-wider">Change</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-200">
-                                    {/* Map only the last 3 entries if there are more than 3 */}
-                                    {allPostsChronological.slice(-3).map((post) => {
-                                        // We find the original index to ensure we can still calculate rank change relative to the previous chronological post
-                                        // even if that previous post is not displayed in the sliced table.
-                                        const originalIndex = allPostsChronological.findIndex(p => p.id === post.id);
-                                        const prevPost = originalIndex > 0 ? allPostsChronological[originalIndex - 1] : null;
+                                <tbody className="divide-y divide-muted/10">
+                                    {allPostsChronological.slice(-5).reverse().map((post, idx, arr) => {
+                                        const prevPost = idx < arr.length - 1 ? arr[idx + 1] : null;
                                         return (
-                                            <tr key={post.id} className="hover:bg-light/50">
+                                            <tr key={post.id} className="hover:bg-light/20 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-muted">{post.date}</td>
-                                                {/* Updated Title Column: Adds break-words and limited max-width to ensure wrapping */}
-                                                <td className="px-6 py-4 text-sm font-medium text-dark whitespace-normal break-words max-w-[150px] sm:max-w-[300px]">{post.title}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-mono text-secondary">{post.metrics.rank}</td>
+                                                <td className="px-6 py-4 text-sm font-bold text-dark whitespace-normal break-words max-w-[200px]">{post.title}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-mono font-bold text-secondary">{post.metrics.rank}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-mono">
                                                     <RankChange currentRank={post.metrics.rank} prevRank={prevPost?.metrics.rank ?? null} />
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-mono text-secondary">{post.metrics.clicks}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-mono text-secondary">{post.metrics.impressions}</td>
                                             </tr>
                                         )
                                     })}
@@ -423,18 +364,14 @@ const HomePage: React.FC = () => {
   
   useEffect(() => {
     const fetchData = async () => {
-        // Fetch Posts
         const { data, error } = await supabase
             .from('posts')
             .select('*')
             .order('date', { ascending: false });
 
-        if (error) console.error("Error fetching posts:", error);
-        else setBlogPosts(data as BlogPost[]);
-
+        if (!error) setBlogPosts(data as BlogPost[]);
         setLoading(false);
     };
-
     fetchData();
   }, []);
   
@@ -450,57 +387,33 @@ const HomePage: React.FC = () => {
 
 
   return (
-    <div className="text-secondary">
+    <div className="text-dark">
       {/* Hero Section */}
       <section ref={heroRef} className="relative bg-light overflow-hidden">
-        {isMobile && (
-            /* Mobile-only subtle gradient background to replace particles */
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-gray-100 via-white to-white opacity-80"></div>
-        )}
         {!isMobile && <ParticleNetwork isAnimating={isHeroVisible} />}
         {!isMobile && <FloatingDataNuggets isAnimating={isHeroVisible} />}
         <div className="absolute inset-0 bg-gradient-to-b from-light/0 to-light z-[5]"></div>
         <div className="relative z-10 py-16 sm:py-24 lg:py-32">
+          {/* FIXED: container alignment bug (auto -> mx-auto) */}
           <div className="max-w-7xl mx-auto px-4 text-center">
-            <p 
-              className="text-lg font-semibold text-primary uppercase tracking-wider fade-in-up"
-              style={{ animationDelay: '100ms' }}
-            >
+            <p className="text-lg font-bold text-primary uppercase tracking-widest fade-in-up" style={{ animationDelay: '100ms' }}>
               The 60-Day SEO Challenge
             </p>
-            <h1 
-              className="mt-4 text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-dark to-secondary fade-in-up leading-tight"
-              style={{ animationDelay: '200ms' }}
-            >
+            <h1 className="mt-4 text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-dark fade-in-up leading-tight" style={{ animationDelay: '200ms' }}>
               Search Me If You Can
             </h1>
-            <p 
-              className="mt-6 text-lg sm:text-xl lg:text-2xl max-w-3xl mx-auto text-secondary fade-in-up"
-              style={{ animationDelay: '400ms' }}
-            >
+            <p className="mt-6 text-lg sm:text-xl lg:text-2xl max-w-3xl mx-auto text-dark/70 fade-in-up" style={{ animationDelay: '400ms' }}>
               If I can rank myself, I can rank your brand. A real-time portfolio proving SEO skills, not just talking about them.
             </p>
-            <div 
-              className="mt-8 sm:mt-12 max-w-3xl mx-auto fade-in-up"
-              style={{ animationDelay: '600ms' }}
-            >
+            <div className="mt-8 sm:mt-12 max-w-3xl mx-auto fade-in-up" style={{ animationDelay: '600ms' }}>
               <CountdownTimer targetDate={challengeEndDate} />
             </div>
 
-            <div 
-              className="mt-8 sm:mt-12 flex flex-col sm:flex-row justify-center gap-4 fade-in-up px-4 sm:px-0"
-              style={{ animationDelay: '800ms' }}
-            >
-              <Link
-                to="/blog"
-                className="w-full sm:w-auto inline-block bg-primary text-primary-foreground font-bold py-3 px-8 rounded-full text-lg hover:brightness-95 transition-all duration-300 transform hover:scale-105 shadow-lg shadow-primary/20 text-center"
-              >
+            <div className="mt-8 sm:mt-12 flex flex-col sm:flex-row justify-center gap-4 fade-in-up px-4 sm:px-0" style={{ animationDelay: '800ms' }}>
+              <Link to="/blog" className="w-full sm:w-auto inline-block bg-primary text-light font-bold py-4 px-10 rounded-full text-lg hover:brightness-95 transition-all duration-300 transform hover:scale-105 shadow-xl shadow-primary/20 text-center">
                 Follow the Challenge
               </Link>
-              <Link
-                to="/challenge"
-                className="w-full sm:w-auto inline-block bg-white text-secondary font-bold py-3 px-8 rounded-full text-lg hover:bg-gray-50 transition-all duration-300 transform hover:scale-105 border-2 border-gray-300 text-center"
-              >
+              <Link to="/challenge" className="w-full sm:w-auto inline-block bg-white text-dark font-bold py-4 px-10 rounded-full text-lg hover:bg-light/50 transition-all duration-300 transform hover:scale-105 border-2 border-muted/20 text-center">
                 About The Challenge
               </Link>
             </div>
@@ -512,32 +425,31 @@ const HomePage: React.FC = () => {
       <section className="py-12 md:py-24 bg-light">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div ref={dashboardRef} className={`text-center mb-10 md:mb-16 animate-on-scroll ${isDashboardVisible ? 'is-visible' : ''}`}>
-                <h2 className="text-3xl font-extrabold text-dark sm:text-4xl">Live Challenge Dashboard</h2>
+                <h2 className="text-3xl font-extrabold text-dark sm:text-4xl">Live Performance</h2>
                 <p className="mt-4 text-lg text-muted max-w-3xl mx-auto">
-                    Real-time progress, with interactive data showing the journey from Day 1 to today.
+                    Real-time progress, from day zero to total organic domination.
                 </p>
             </div>
             {loading ? <DashboardSkeleton /> : <LiveChallengeDashboard blogPosts={blogPosts} />}
         </div>
       </section>
 
-
-      {/* About the Challenge Section */}
+      {/* Case Study Section */}
       <section ref={caseStudyRef} className={`py-12 md:py-24 bg-white animate-on-scroll ${isCaseStudyVisible ? 'is-visible' : ''}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-extrabold text-dark sm:text-4xl">A Transparent Case Study</h2>
             <p className="mt-4 text-lg text-muted max-w-3xl mx-auto">
-              This challenge is a public demonstration of ranking a brand new site from scratch—no tricks, no budget, just pure SEO strategy.
+              This challenge is a public demonstration of ranking a brand new site from scratch—pure SEO strategy.
             </p>
           </div>
           <div className="mt-10 md:mt-16 grid gap-12 lg:grid-cols-2 items-center">
             <div className="animate-on-scroll is-visible" style={{ transitionDelay: '200ms' }}>
-              <img loading="lazy" src="https://picsum.photos/seed/casestudy/800/600" alt="Data analysis dashboard" className="rounded-2xl shadow-lg w-full h-auto" />
+              <img loading="lazy" src="https://picsum.photos/seed/casestudy/800/600" alt="Data analysis dashboard" className="rounded-3xl shadow-2xl w-full h-auto border border-muted/10" />
             </div>
             <div className="space-y-8">
               <div className="flex items-start animate-on-scroll is-visible" style={{ transitionDelay: '400ms' }}>
-                <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-primary/10">
+                <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
                   <Target className="h-6 w-6 text-primary" />
                 </div>
                 <div className="ml-4">
@@ -548,7 +460,7 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-start animate-on-scroll is-visible" style={{ transitionDelay: '600ms' }}>
-                <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-primary/10">
+                <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
                   <Compass className="h-6 w-6 text-primary" />
                 </div>
                 <div className="ml-4">
@@ -559,7 +471,7 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-start animate-on-scroll is-visible" style={{ transitionDelay: '800ms' }}>
-                <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-primary/10">
+                <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-xl bg-primary/10">
                   <CheckSquare className="h-6 w-6 text-primary" />
                 </div>
                 <div className="ml-4">
@@ -576,12 +488,12 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Latest Posts Section */}
+      {/* Latest Logs Section */}
       <section ref={logRef} className={`py-12 md:py-24 bg-light animate-on-scroll ${isLogVisible ? 'is-visible' : ''}`}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center mb-10 md:mb-16">
-            <h2 className="text-3xl font-extrabold text-dark sm:text-4xl">Latest from the Log</h2>
-            <Link to="/blog" className="group inline-flex items-center font-semibold text-primary hover:text-dark transition-colors">
+            <h2 className="text-3xl font-extrabold text-dark sm:text-4xl">Latest Updates</h2>
+            <Link to="/blog" className="group inline-flex items-center font-bold text-primary hover:text-dark transition-colors">
               View All Logs
               <ArrowRight className="ml-2 transition-transform group-hover:translate-x-1" />
             </Link>
@@ -591,27 +503,25 @@ const HomePage: React.FC = () => {
                     const postNumber = allPostsChronological.findIndex(p => p.id === post.id) + 1;
                     return (
                         <div key={post.id} className="group flex animate-on-scroll is-visible" style={{ transitionDelay: `${index * 200}ms` }}>
-                            {/* Timeline Column */}
                             <div className="flex flex-col items-center mr-4 sm:mr-6">
                                 <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center z-10 bg-light transition-transform duration-300 group-hover:scale-110">
                                     <span className="font-bold text-primary text-base sm:text-lg">{postNumber}</span>
                                 </div>
                                 {index < latestPostsForTimeline.length - 1 && (
-                                    <div className="w-px flex-1 bg-gray-200"></div>
+                                    <div className="w-px flex-1 bg-muted/20"></div>
                                 )}
                             </div>
 
-                            {/* Content Column */}
                             <div className="pb-8 sm:pb-12 transition-transform duration-300 group-hover:translate-x-2 w-full">
-                                <p className="text-sm font-semibold text-muted tracking-wide uppercase">{post.date}</p>
+                                <p className="text-sm font-bold text-muted tracking-widest uppercase">{post.date}</p>
                                 <Link to={`/blog/${post.slug}`} className="block mt-1 mb-2">
                                     <h3 className="text-xl sm:text-2xl font-bold text-dark group-hover:text-primary transition-colors">{post.title}</h3>
                                 </Link>
-                                <p className="text-muted mb-4 leading-relaxed h-auto sm:h-14 line-clamp-3 sm:line-clamp-2">{post.excerpt}</p>
-                                <div className="p-4 bg-white border border-gray-200 rounded-lg flex flex-wrap items-center gap-x-4 sm:gap-x-6 gap-y-2 text-sm text-muted">
-                                    <div className="flex items-center gap-1.5"><TrendingUp className="text-primary h-4 w-4" /> Rank: <span className="text-dark font-bold">{post.metrics.rank}</span></div>
-                                    <div className="flex items-center gap-1.5"><MousePointer className="text-primary h-4 w-4" /> Clicks: <span className="text-dark font-bold">{post.metrics.clicks}</span></div>
-                                    <div className="flex items-center gap-1.5"><Eye className="text-primary h-4 w-4" /> Impressions: <span className="text-dark font-bold">{post.metrics.impressions}</span></div>
+                                <p className="text-muted mb-4 leading-relaxed line-clamp-2">{post.excerpt}</p>
+                                <div className="p-4 bg-white border border-muted/10 rounded-xl flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-muted">
+                                    <div className="flex items-center gap-1.5 font-bold"><TrendingUp className="text-primary h-4 w-4" /> Rank: <span className="text-secondary">{post.metrics.rank}</span></div>
+                                    <div className="flex items-center gap-1.5 font-bold"><MousePointer className="text-primary h-4 w-4" /> Clicks: <span className="text-secondary">{post.metrics.clicks}</span></div>
+                                    <div className="flex items-center gap-1.5 font-bold"><Eye className="text-primary h-4 w-4" /> Impr: <span className="text-secondary">{post.metrics.impressions}</span></div>
                                 </div>
                             </div>
                         </div>
@@ -624,7 +534,7 @@ const HomePage: React.FC = () => {
        {/* FAQ Section */}
       <section ref={faqRef} className={`py-12 md:py-24 bg-white animate-on-scroll ${isFaqVisible ? 'is-visible' : ''}`}>
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-              <h2 className="text-3xl font-extrabold text-center text-dark mb-8 md:mb-12">Frequently Asked Questions</h2>
+              <h2 className="text-3xl font-extrabold text-center text-dark mb-8 md:mb-12 uppercase tracking-widest">Common Questions</h2>
               <div className="space-y-2 sm:space-y-4">
                   {faqs.map((faq, index) => (
                       <FAQItem 

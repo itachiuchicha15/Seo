@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Linkedin, Calendar, ArrowRight, Mail, Copy, Check, Send, Loader, AlertCircle, Clock, MapPin, ChevronDown, Globe } from 'lucide-react';
 import useIntersectionObserver from '../hooks/useIntersectionObserver';
@@ -13,7 +12,7 @@ const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
 const FAQItem = ({ question, answer }: { question: string, answer: string }) => {
     const [isOpen, setIsOpen] = useState(false);
     return (
-        <div className="border-b border-gray-100 last:border-0">
+        <div className="border-b border-muted/10 last:border-0">
             <button 
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full py-6 flex items-center justify-between text-left focus:outline-none group"
@@ -21,12 +20,12 @@ const FAQItem = ({ question, answer }: { question: string, answer: string }) => 
                 <span className={`text-lg font-medium transition-colors duration-300 ${isOpen ? 'text-primary' : 'text-dark group-hover:text-primary'}`}>
                     {question}
                 </span>
-                <span className={`ml-6 flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full border transition-all duration-300 ${isOpen ? 'bg-primary border-primary text-white rotate-180' : 'bg-white border-gray-200 text-muted group-hover:border-primary group-hover:text-primary'}`}>
+                <span className={`ml-6 flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full border transition-all duration-300 ${isOpen ? 'bg-primary border-primary text-light rotate-180' : 'bg-white border-muted/20 text-muted group-hover:border-primary group-hover:text-primary'}`}>
                     <ChevronDown className="h-4 w-4" />
                 </span>
             </button>
             <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? 'max-h-48 opacity-100 pb-6' : 'max-h-0 opacity-0'}`}>
-                <p className="text-secondary leading-relaxed pr-8">{answer}</p>
+                <p className="text-dark/70 leading-relaxed pr-8">{answer}</p>
             </div>
         </div>
     )
@@ -80,21 +79,21 @@ const ContactPage: React.FC = () => {
   };
 
   return (
-    <div className="bg-white min-h-screen fade-in">
+    <div className="bg-light min-h-screen fade-in">
       {/* Elegant Header Section */}
-      <div className="bg-light relative overflow-hidden border-b border-gray-100">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-gray-100 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl opacity-60"></div>
+      <div className="bg-white relative overflow-hidden border-b border-muted/10">
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-muted/5 to-transparent rounded-full -translate-y-1/2 translate-x-1/3 blur-3xl opacity-60"></div>
           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-primary/5 to-transparent rounded-full translate-y-1/3 -translate-x-1/3 blur-3xl"></div>
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-20 relative z-10">
               <div className="max-w-3xl">
-                  <span className="inline-block py-1 px-3 rounded-full bg-white border border-gray-200 text-primary text-xs font-bold uppercase tracking-wider mb-6 shadow-sm">
+                  <span className="inline-block py-1 px-3 rounded-full bg-light border border-muted/20 text-primary text-xs font-bold uppercase tracking-wider mb-6 shadow-sm">
                     Contact
                   </span>
                   <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-dark mb-6 leading-tight">
                     Let's Start a <br className="hidden md:block" /> Conversation.
                   </h1>
-                  <p className="text-xl text-secondary max-w-xl leading-relaxed">
+                  <p className="text-xl text-dark/70 max-w-xl leading-relaxed">
                       Whether you have a specific goal in mind or just want to explore what's possible, I'm ready to listen.
                   </p>
               </div>
@@ -107,59 +106,59 @@ const ContactPage: React.FC = () => {
             {/* Left Sidebar: Contact Info */}
             <div className="lg:col-span-4 space-y-6" ref={contentRef}>
                 <div className={`space-y-6 animate-on-scroll ${isContentVisible ? 'is-visible' : ''}`}>
-                    {/* Primary Contact Card */}
-                    <div className="bg-[#050505] text-white rounded-3xl p-8 shadow-2xl shadow-black/10 relative overflow-hidden group">
+                    {/* Primary Contact Card - Black Forest (dark) */}
+                    <div className="bg-dark text-light rounded-3xl p-8 shadow-2xl shadow-dark/20 relative overflow-hidden group">
                         {/* Animated Background Icon */}
-                        <div className="absolute -bottom-6 -right-6 p-4 text-white opacity-[0.03] transform group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700 ease-out">
+                        <div className="absolute -bottom-6 -right-6 p-4 text-light opacity-[0.03] transform group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-700 ease-out">
                             <Mail className="w-48 h-48" />
                         </div>
                         
                         <div className="relative z-10">
                             <div className="flex items-center justify-between mb-8">
                                 <h2 className="text-2xl font-bold">Contact Info</h2>
-                                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/5 backdrop-blur-sm">
+                                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-light/10 border border-light/5 backdrop-blur-sm">
                                     <span className="relative flex h-2 w-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                                     </span>
-                                    <span className="text-xs font-medium text-white/90">Online</span>
+                                    <span className="text-xs font-medium text-light/90">Online</span>
                                 </div>
                             </div>
                             
                             <div className="space-y-8">
                                 <div className="group/item">
-                                    <p className="text-sm text-gray-400 mb-1 flex items-center gap-2">
+                                    <p className="text-sm text-muted mb-1 flex items-center gap-2">
                                         <Mail className="h-4 w-4" /> Email Me
                                     </p>
                                     <div className="flex items-center gap-3">
-                                        <a href={`mailto:${emailAddress}`} className="text-lg font-bold hover:text-white/80 transition-colors border-b border-transparent hover:border-white/50 pb-0.5">{emailAddress}</a>
-                                        <button onClick={handleCopy} className="p-2 hover:bg-white/10 rounded-lg transition-colors group-hover/item:bg-white/5" title="Copy Email">
-                                            {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
+                                        <a href={`mailto:${emailAddress}`} className="text-lg font-bold hover:text-light/80 transition-colors border-b border-transparent hover:border-light/50 pb-0.5">{emailAddress}</a>
+                                        <button onClick={handleCopy} className="p-2 hover:bg-light/10 rounded-lg transition-colors group-hover/item:bg-light/5" title="Copy Email">
+                                            {copied ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
                                         </button>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <p className="text-sm text-gray-400 mb-1 flex items-center gap-2">
+                                    <p className="text-sm text-muted mb-1 flex items-center gap-2">
                                         <Globe className="h-4 w-4" /> Based In
                                     </p>
                                     <p className="text-lg font-bold">Chennai, India</p>
-                                    <p className="text-sm text-gray-500 mt-1">Available for global remote work</p>
+                                    <p className="text-sm text-muted/60 mt-1">Available for global remote work</p>
                                 </div>
 
                                 <div>
-                                    <p className="text-sm text-gray-400 mb-1 flex items-center gap-2">
+                                    <p className="text-sm text-muted mb-1 flex items-center gap-2">
                                         <Clock className="h-4 w-4" /> Response Time
                                     </p>
                                     <p className="text-lg font-bold">Usually within 24 hours</p>
                                 </div>
                             </div>
 
-                            <div className="mt-10 pt-8 border-t border-white/10 flex gap-4">
-                                <a href="#" className="bg-white/5 hover:bg-white/20 p-3 rounded-xl transition-all duration-300 text-white/70 hover:text-white">
+                            <div className="mt-10 pt-8 border-t border-light/10 flex gap-4">
+                                <a href="#" className="bg-light/5 hover:bg-light/20 p-3 rounded-xl transition-all duration-300 text-light/70 hover:text-light">
                                     <Linkedin className="h-5 w-5" />
                                 </a>
-                                <a href="#" className="bg-white/5 hover:bg-white/20 p-3 rounded-xl transition-all duration-300 text-white/70 hover:text-white">
+                                <a href="#" className="bg-light/5 hover:bg-light/20 p-3 rounded-xl transition-all duration-300 text-light/70 hover:text-light">
                                     <XIcon className="h-5 w-5" />
                                 </a>
                             </div>
@@ -167,7 +166,7 @@ const ContactPage: React.FC = () => {
                     </div>
 
                     {/* Secondary Card: Book a Call */}
-                    <div className="bg-white rounded-3xl p-8 shadow-lg shadow-gray-100 border border-gray-100 hover:border-primary/20 transition-colors duration-300">
+                    <div className="bg-white rounded-3xl p-8 shadow-lg shadow-muted/5 border border-muted/10 hover:border-primary/20 transition-colors duration-300">
                          <div className="flex items-start gap-4 mb-4">
                              <div className="bg-primary/5 p-3 rounded-xl">
                                  <Calendar className="h-6 w-6 text-primary" />
@@ -177,7 +176,7 @@ const ContactPage: React.FC = () => {
                                 <p className="text-muted text-sm mt-1">Book a 15-min discovery call directly.</p>
                              </div>
                          </div>
-                         <a href="#" className="mt-4 w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-100 text-dark font-bold py-3 px-4 rounded-xl hover:border-primary hover:text-primary transition-all duration-300">
+                         <a href="#" className="mt-4 w-full flex items-center justify-center gap-2 bg-white border-2 border-light text-dark font-bold py-3 px-4 rounded-xl hover:border-primary hover:text-primary transition-all duration-300">
                              Book Discovery Call <ArrowRight className="h-4 w-4" />
                          </a>
                     </div>
@@ -186,14 +185,14 @@ const ContactPage: React.FC = () => {
 
             {/* Right Content: The Form */}
             <div className="lg:col-span-8">
-                <div ref={formRef} className={`bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 p-8 md:p-12 h-full animate-on-scroll ${isFormVisible ? 'is-visible' : ''}`}>
+                <div ref={formRef} className={`bg-white rounded-3xl shadow-xl shadow-muted/5 border border-muted/10 p-8 md:p-12 h-full animate-on-scroll ${isFormVisible ? 'is-visible' : ''}`}>
                     {submitStatus === 'success' ? (
                         <div className="h-full flex flex-col items-center justify-center text-center py-12 fade-in">
-                            <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mb-6">
-                                <Check className="h-10 w-10 text-green-500" />
+                            <div className="w-20 h-20 bg-primary/5 rounded-full flex items-center justify-center mb-6">
+                                <Check className="h-10 w-10 text-primary" />
                             </div>
                             <h3 className="text-3xl font-bold text-dark mb-4">Message Sent!</h3>
-                            <p className="text-secondary max-w-md mx-auto mb-8 text-lg">
+                            <p className="text-dark/70 max-w-md mx-auto mb-8 text-lg">
                                 Thanks for reaching out. I've received your message and will get back to you shortly.
                             </p>
                             <button onClick={() => setSubmitStatus('idle')} className="text-primary font-bold hover:underline underline-offset-4">
@@ -218,8 +217,8 @@ const ContactPage: React.FC = () => {
                                             onClick={() => setActiveSubject(subject)}
                                             className={`px-5 py-2.5 rounded-full text-sm font-semibold border transition-all duration-300 ${
                                                 activeSubject === subject 
-                                                ? 'bg-dark text-white border-dark shadow-lg shadow-black/10 transform scale-105' 
-                                                : 'bg-white text-secondary border-gray-200 hover:border-primary hover:text-primary'
+                                                ? 'bg-dark text-light border-dark shadow-lg shadow-dark/10 transform scale-105' 
+                                                : 'bg-white text-dark/70 border-muted/20 hover:border-primary hover:text-primary'
                                             }`}
                                         >
                                             {subject}
@@ -237,7 +236,7 @@ const ContactPage: React.FC = () => {
                                         name="name" 
                                         required
                                         disabled={submitting}
-                                        className="w-full px-4 py-3.5 rounded-xl bg-gray-50 border border-gray-200 text-dark placeholder-gray-400 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none"
+                                        className="w-full px-4 py-3.5 rounded-xl bg-light/30 border border-muted/20 text-dark placeholder-muted focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none"
                                         placeholder="John Doe"
                                     />
                                 </div>
@@ -249,7 +248,7 @@ const ContactPage: React.FC = () => {
                                         name="email" 
                                         required
                                         disabled={submitting}
-                                        className="w-full px-4 py-3.5 rounded-xl bg-gray-50 border border-gray-200 text-dark placeholder-gray-400 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none"
+                                        className="w-full px-4 py-3.5 rounded-xl bg-light/30 border border-muted/20 text-dark placeholder-muted focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none"
                                         placeholder="john@example.com"
                                     />
                                 </div>
@@ -263,14 +262,14 @@ const ContactPage: React.FC = () => {
                                     rows={6}
                                     required
                                     disabled={submitting}
-                                    className="w-full px-4 py-3.5 rounded-xl bg-gray-50 border border-gray-200 text-dark placeholder-gray-400 focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none resize-none"
+                                    className="w-full px-4 py-3.5 rounded-xl bg-light/30 border border-muted/20 text-dark placeholder-muted focus:bg-white focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none resize-none"
                                     placeholder="Tell me a bit about your project, timeline, and goals..."
                                 ></textarea>
                             </div>
 
                             <div className="flex items-center justify-between pt-4">
                                 {submitStatus === 'error' && (
-                                    <span className="text-red-600 text-sm font-semibold flex items-center gap-2 bg-red-50 px-4 py-2 rounded-lg">
+                                    <span className="text-secondary text-sm font-semibold flex items-center gap-2 bg-secondary/5 px-4 py-2 rounded-lg">
                                         <AlertCircle className="h-4 w-4" /> Failed to send. Please try again.
                                     </span>
                                 )}
@@ -279,7 +278,7 @@ const ContactPage: React.FC = () => {
                                 <button 
                                     type="submit" 
                                     disabled={submitting}
-                                    className="inline-flex items-center justify-center gap-2 bg-primary text-white font-bold py-4 px-10 rounded-xl text-lg shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-1 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
+                                    className="inline-flex items-center justify-center gap-2 bg-primary text-light font-bold py-4 px-10 rounded-xl text-lg shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 hover:-translate-y-1 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
                                 >
                                     {submitting ? <Loader className="animate-spin h-5 w-5" /> : <Send className="h-5 w-5" />}
                                     {submitting ? 'Sending...' : 'Send Message'}
